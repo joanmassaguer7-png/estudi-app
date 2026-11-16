@@ -20,7 +20,7 @@ export function TopicScreen({ data, topicId, go }: { data: CourseData; topicId: 
       name: 'pretest',
       test: {
         mode: 'tema',
-        title: `Test · T${topic!.number} ${topic!.title}`,
+        title: `Tema ${topic!.number}: ${topic!.title}`,
         description: 'Preguntes del tema, amb prioritat per a les que has fallat i les que no has vist.',
         questions: qs,
       },
@@ -29,7 +29,7 @@ export function TopicScreen({ data, topicId, go }: { data: CourseData; topicId: 
 
   return (
     <div className="screen">
-      <ScreenHeader title={`T${topic.number} · ${topic.title}`} onBack={() => go({ name: 'home' })} />
+      <ScreenHeader title={`${topic.number}. ${topic.title}`} onBack={() => go({ name: 'home' })} />
 
       <button className="primary-btn wide" onClick={startTest}>
         Fer test del tema

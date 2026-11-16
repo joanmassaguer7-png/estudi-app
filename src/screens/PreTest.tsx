@@ -11,18 +11,23 @@ export function PreTest({ data, test, go }: { data: CourseData; test: PlannedTes
   return (
     <div className="screen">
       <ScreenHeader title={test.title} onBack={() => go({ name: 'home' })} />
-      <div className="card center">
-        <p className="big-number">{test.questions.length}</p>
-        <p className="muted">preguntes</p>
-        <p>{test.description}</p>
+      <div className="pretest-hero">
+        <span className="pretest-count" aria-label={`${test.questions.length} preguntes`}>
+          {test.questions.length}
+        </span>
+        <div>
+          <h2>{test.questions.length} preguntes</h2>
+          <p>{test.description}</p>
+        </div>
       </div>
 
-      <h2>Repartiment per tema</h2>
+      <h2>Preguntes per tema</h2>
       <ul className="plain-list">
         {perTopic.map(({ t, n }) => (
           <li key={t.id}>
-            <span>
-              T{t.number} · {t.title}
+            <span className="list-topic">
+              <span className="mini-number">{t.number}</span>
+              {t.title}
             </span>
             <strong>{n}</strong>
           </li>
@@ -31,8 +36,8 @@ export function PreTest({ data, test, go }: { data: CourseData; test: PlannedTes
 
       <div className="card soft">
         <p>
-          Durant el test no veuràs si l’encertes. Pots tornar a les preguntes ja vistes i canviar la resposta.
-          El botó «Finalitzar» s’activa quan arribes a l’última.
+          No sabràs si l’encertes fins al final. Pots tornar a les preguntes que ja has vist i canviar-ne la
+          resposta. «Finalitzar test» s’activa quan arribes a l’última.
         </p>
       </div>
 

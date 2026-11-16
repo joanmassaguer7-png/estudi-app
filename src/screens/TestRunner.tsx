@@ -2,7 +2,7 @@ import { useReducer, useState } from 'react'
 import { saveFinishedTest } from '../data/sessions'
 import { canFinish, initialTestState, testReducer, unansweredCount } from '../logic/testState'
 import type { Navigate, PlannedTest } from '../nav'
-import { CloseIcon } from '../components/icons'
+import { CloseIcon, PawIcon } from '../components/icons'
 import { Modal } from '../components/ui'
 
 const LETTERS = 'ABCDEFGH'
@@ -12,6 +12,13 @@ export function TestRunner({ courseId, test, go }: { courseId: string; test: Pla
   const [startedAt] = useState(() => new Date().toISOString())
   const [dialog, setDialog] = useState<'none' | 'finish' | 'exit'>('none')
   const [saving, setSaving] = useState(false)
+  // Direcció de l'animació en canviar de pregunta (endavant o enrere).
+  const [prevIndex, setPrevIndex] = useState(0)
+  const [dir, setDir] = useState<'fwd' | 'back'>('fwd')
+  if (prevIndex !== state.index) {
+    setDir(state.index > prevIndex ? 'fwd' : 'back')
+    setPrevIndex(state.index)
+  }
 
   const q = test.questions[state.index]
   const isLast = state.index === test.questions.length - 1
@@ -20,7 +27,7 @@ export function TestRunner({ courseId, test, go }: { courseId: string; test: Pla
   async function finish() {
     setSaving(true)
     const sessionId = await saveFinishedTest(courseId, test.mode, test.title, test.questions, state.answers, startedAt)
-    go({ name: 'summary', sessionId })
+    go({ name: 'summary', sessionId, celebrate: test.mode === 'repas-diari' })
   }
 
   function onFinishClick() {
@@ -31,15 +38,27 @@ export function TestRunner({ courseId, test, go }: { courseId: string; test: Pla
   return (
     <div className="screen test-screen">
       <header className="test-header">
-        <span className="muted">{test.title}</span>
+        <div className="test-heading">
+          <span className="test-title">{test.title}</span>
+          <span className="test-count">
+            Pregunta {state.index + 1} de {test.questions.length}
+          </span>
+        </div>
         <button className="icon-btn" onClick={() => setDialog('exit')} aria-label="Sortir del test">
           <CloseIcon />
         </button>
       </header>
 
-      <h2 className="question">
-        <span className="q-number">{state.index + 1}.</span> {q.text}
-      </h2>
+      {/* Progrés: un camí de petjades. La part plena és fins on has arribat; la petjada marca on ets. */}
+      <div className="road" aria-hidden="true">
+        <div className="road-done" style={{ width: `${((state.maxVisited + 1) / test.questions.length) * 100}%` }} />
+        <div className="road-car" style={{ left: `${((state.index + 0.5) / test.questions.length) * 100}%` }}>
+          <PawIcon size={16} />
+        </div>
+      </div>
+
+      <div key={state.index} className={`question-block ${dir}`}>
+      <h2 className="question">{q.text}</h2>
 
       <div className="options">
         {q.options.map((opt, i) => (
@@ -49,9 +68,10 @@ export function TestRunner({ courseId, test, go }: { courseId: string; test: Pla
             onClick={() => dispatch({ type: 'answer', option: i })}
           >
             <span className="option-letter">{LETTERS[i]}</span>
-            <span>{opt}</span>
+            <span className="option-text">{opt}</span>
           </button>
         ))}
+      </div>
       </div>
 
       <div className="test-nav">

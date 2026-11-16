@@ -35,3 +35,30 @@ export function useInstallPrompt(): (() => void) | null {
 export function requestPersistentStorage() {
   navigator.storage?.persist?.().catch(() => {})
 }
+
+/**
+ * Avisa quan s'ha instal·lat una versió nova de l'app mentre estava oberta.
+ * El service worker nou pren el control (skipWaiting); recarregar mostra la versió nova.
+ */
+export function useServiceWorkerUpdate(): boolean {
+  const [ready, setReady] = useState(false)
+  useEffect(() => {
+    const sw = navigator.serviceWorker
+    if (!sw || import.meta.env.DEV) return
+    const hadController = Boolean(sw.controller)
+    const onChange = () => {
+      if (hadController) setReady(true)
+    }
+    sw.addEventListener('controllerchange', onChange)
+    // Comprovar si hi ha versió nova cada vegada que l'app torna a primer pla.
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') sw.getRegistration().then((r) => r?.update()).catch(() => {})
+    }
+    document.addEventListener('visibilitychange', onVisible)
+    return () => {
+      sw.removeEventListener('controllerchange', onChange)
+      document.removeEventListener('visibilitychange', onVisible)
+    }
+  }, [])
+  return ready
+}

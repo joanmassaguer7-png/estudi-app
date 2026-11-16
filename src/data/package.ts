@@ -4,10 +4,11 @@
 //  - Fitxer de progrés (mòbil → ordinador): intents, tests i corones.
 //  - Còpia de seguretat: tot el contingut de la base de dades.
 //
-// De moment són fitxers JSON. Si més endavant hi ha imatges, es pot passar a ZIP.
+// Són fitxers JSON compactes. La còpia de seguretat i el progrés es comprimeixen (gzip) per
+// ocupar poc al mòbil; la importació accepta tant fitxers comprimits com JSON normal.
 
 import { crownsKey, db } from './db'
-import type { Attempt, Course, Question, Subtopic, TestSession, Topic } from './types'
+import type { Attempt, Course, Question, QuestionReport, Subtopic, TestSession, Topic } from './types'
 
 export const CONTENT_FORMAT = 'estudi-app/contingut'
 export const PROGRESS_FORMAT = 'estudi-app/progres'
@@ -31,6 +32,8 @@ export interface ProgressFile {
   attempts: Attempt[]
   sessions: TestSession[]
   crowns: Record<string, string[]>
+  /** Preguntes marcades per revisar (opcional: els fitxers antics no en tenen). */
+  reports?: QuestionReport[]
 }
 
 // ---------- Validació (funcions pures, sense base de dades) ----------
@@ -95,6 +98,8 @@ export function validateContentPackage(
       errors.push(`${where}: calen com a mínim 2 opcions.`)
     else if (!Number.isInteger(q.correctIndex) || q.correctIndex < 0 || q.correctIndex >= q.options.length)
       errors.push(`${where}: la resposta correcta no és vàlida.`)
+    if (q.difficulty !== undefined && ![1, 2, 3, 4].includes(q.difficulty))
+      errors.push(`${where}: la dificultat ha de ser 1, 2, 3 o 4.`)
     if (subtopicToTopic.get(q.subtopicId) !== q.topicId)
       errors.push(`${where}: el tema/subtema no existeix al temari.`)
   })
@@ -171,6 +176,7 @@ export async function buildProgressFile(): Promise<ProgressFile> {
     attempts: await db.attempts.toArray(),
     sessions: await db.sessions.toArray(),
     crowns,
+    reports: await db.reports.toArray(),
   }
 }
 
@@ -181,9 +187,10 @@ export async function importProgressFile(data: unknown): Promise<{ attempts: num
   if (!Array.isArray(p.attempts) || !Array.isArray(p.sessions)) throw new Error('El fitxer de progrés està mal format.')
   const before = await db.attempts.count()
   const beforeS = await db.sessions.count()
-  await db.transaction('rw', [db.attempts, db.sessions, db.settings], async () => {
+  await db.transaction('rw', [db.attempts, db.sessions, db.settings, db.reports], async () => {
     await db.attempts.bulkPut(p.attempts!)
     await db.sessions.bulkPut(p.sessions!)
+    if (Array.isArray(p.reports)) await db.reports.bulkPut(p.reports)
     for (const [courseId, ids] of Object.entries(p.crowns ?? {})) {
       await db.settings.put({ key: crownsKey(courseId), value: ids })
     }
@@ -191,7 +198,43 @@ export async function importProgressFile(data: unknown): Promise<{ attempts: num
   return { attempts: (await db.attempts.count()) - before, sessions: (await db.sessions.count()) - beforeS }
 }
 
+/** JSON amb les claus ordenades, per comparar objectes sense dependre de l'ordre. */
+function stableJson(v: unknown): string {
+  if (Array.isArray(v)) return `[${v.map(stableJson).join(',')}]`
+  if (v && typeof v === 'object') {
+    return `{${Object.keys(v)
+      .filter((k) => (v as Record<string, unknown>)[k] !== undefined)
+      .sort()
+      .map((k) => `${JSON.stringify(k)}:${stableJson((v as Record<string, unknown>)[k])}`)
+      .join(',')}}`
+  }
+  return JSON.stringify(v)
+}
+
+/**
+ * A la còpia, cada pregunta d'un test que és idèntica a la del banc es guarda només amb el seu id.
+ * És el que més espai estalvia: sense això, cada test duplica el text sencer de les preguntes.
+ */
+function packSessions(sessions: TestSession[], questions: Question[]) {
+  const bank = new Map(questions.map((q) => [q.id, stableJson(q)]))
+  return sessions.map((s) => ({
+    ...s,
+    snapshot: s.snapshot.map((q) => (bank.get(q.id) === stableJson(q) ? q.id : q)),
+  }))
+}
+
+function unpackSessions(sessions: (Omit<TestSession, 'snapshot'> & { snapshot: (Question | string)[] })[], questions: Question[]): TestSession[] {
+  const bank = new Map(questions.map((q) => [q.id, q]))
+  return sessions.map((s) => ({
+    ...s,
+    snapshot: s.snapshot
+      .map((q) => (typeof q === 'string' ? bank.get(q) : q))
+      .filter((q): q is Question => !!q),
+  }))
+}
+
 export async function buildBackup() {
+  const questions = await db.questions.toArray()
   return {
     format: BACKUP_FORMAT,
     formatVersion: FORMAT_VERSION,
@@ -199,17 +242,18 @@ export async function buildBackup() {
     courses: await db.courses.toArray(),
     topics: await db.topics.toArray(),
     subtopics: await db.subtopics.toArray(),
-    questions: await db.questions.toArray(),
+    questions,
     attempts: await db.attempts.toArray(),
-    sessions: await db.sessions.toArray(),
+    sessions: packSessions(await db.sessions.toArray(), questions),
     settings: await db.settings.toArray(),
+    reports: await db.reports.toArray(),
   }
 }
 
 export async function restoreBackup(data: unknown) {
   const b = data as Awaited<ReturnType<typeof buildBackup>>
   if (!b || b.format !== BACKUP_FORMAT) throw new Error('Aquest fitxer no és una còpia de seguretat.')
-  const tables = [db.courses, db.topics, db.subtopics, db.questions, db.attempts, db.sessions, db.settings]
+  const tables = [db.courses, db.topics, db.subtopics, db.questions, db.attempts, db.sessions, db.settings, db.reports]
   await db.transaction('rw', tables, async () => {
     for (const t of tables) await t.clear()
     await db.courses.bulkAdd(b.courses)
@@ -217,15 +261,26 @@ export async function restoreBackup(data: unknown) {
     await db.subtopics.bulkAdd(b.subtopics)
     await db.questions.bulkAdd(b.questions)
     await db.attempts.bulkAdd(b.attempts)
-    await db.sessions.bulkAdd(b.sessions)
+    await db.sessions.bulkAdd(unpackSessions(b.sessions, b.questions))
     await db.settings.bulkAdd(b.settings)
+    if (Array.isArray(b.reports)) await db.reports.bulkAdd(b.reports)
   })
 }
 
 // ---------- Utilitats de fitxers ----------
 
-export function downloadJson(data: unknown, filename: string) {
-  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+/**
+ * Descarrega dades com a fitxer. Amb `compress`, si el navegador ho permet, el fitxer surt
+ * comprimit (.json.gz), unes 6 vegades més petit.
+ */
+export async function downloadJson(data: unknown, filename: string, compress = false) {
+  const text = JSON.stringify(data)
+  let blob: Blob = new Blob([text], { type: 'application/json' })
+  if (compress && typeof CompressionStream !== 'undefined') {
+    blob = await new Response(blob.stream().pipeThrough(new CompressionStream('gzip'))).blob()
+    blob = new Blob([blob], { type: 'application/gzip' })
+    filename += '.gz'
+  }
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
@@ -235,7 +290,19 @@ export function downloadJson(data: unknown, filename: string) {
 }
 
 export async function readJsonFile(file: File): Promise<unknown> {
-  const text = await file.text()
+  const head = new Uint8Array(await file.slice(0, 2).arrayBuffer())
+  const gzipped = head[0] === 0x1f && head[1] === 0x8b
+  let text: string
+  if (gzipped) {
+    if (typeof DecompressionStream === 'undefined') throw new Error('Aquest navegador no pot obrir fitxers comprimits.')
+    try {
+      text = await new Response(file.stream().pipeThrough(new DecompressionStream('gzip'))).text()
+    } catch {
+      throw new Error('El fitxer comprimit està malmès.')
+    }
+  } else {
+    text = await file.text()
+  }
   try {
     return JSON.parse(text)
   } catch {
@@ -244,3 +311,28 @@ export async function readJsonFile(file: File): Promise<unknown> {
 }
 
 export const dateStamp = () => new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-')
+
+export type ShareResult = 'enviada' | 'cancel·lada' | 'descarregada'
+
+/**
+ * Envia la còpia de seguretat amb el menú de compartir del mòbil (Drive, WhatsApp, correu…),
+ * perquè no hagi de quedar guardada al mòbil. Android només deixa compartir certs tipus de
+ * fitxer, per això s'envia com a text (.txt): la importació l'accepta igual.
+ * Si el navegador no pot compartir fitxers, es descarrega comprimida.
+ */
+export async function shareBackup(): Promise<ShareResult> {
+  const data = await buildBackup()
+  const name = `copia-estudi-${dateStamp()}.txt`
+  const file = new File([JSON.stringify(data)], name, { type: 'text/plain' })
+  if (navigator.canShare?.({ files: [file] })) {
+    try {
+      await navigator.share({ files: [file], title: 'Còpia de seguretat' })
+      return 'enviada'
+    } catch (e) {
+      if ((e as Error).name === 'AbortError') return 'cancel·lada'
+      // Si l'enviament falla per un altre motiu, almenys que es descarregui.
+    }
+  }
+  await downloadJson(data, `copia-estudi-${dateStamp()}.json`, true)
+  return 'descarregada'
+}

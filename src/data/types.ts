@@ -45,10 +45,14 @@ export interface Question {
   options: string[]
   correctIndex: number
   explanation?: string
+  /** D'on surt la pregunta: apartat i cita del temari. */
+  source?: string
+  /** 1 fàcil · 2 mitjana · 3 difícil · 4 extra difícil (només surt al mode Extra difícil). */
+  difficulty?: 1 | 2 | 3 | 4
   generation?: { source: string; createdAt: string; model?: string }
 }
 
-export type StudyMode = 'tema' | 'repas-diari' | 'repas-total' | 'errors' | 'trivial'
+export type StudyMode = 'tema' | 'repas-diari' | 'repas-total' | 'errors' | 'trivial' | 'extra'
 
 /** Un intent = una resposta (o no-resposta) a una pregunta dins d'un test. */
 export interface Attempt {
@@ -86,4 +90,16 @@ export interface TestSession {
 export interface Setting {
   key: string
   value: unknown
+}
+
+/** Una pregunta marcada per revisar (possible error a l'enunciat o a les respostes). */
+export interface QuestionReport {
+  id: string
+  courseId: string
+  questionId: string
+  reason: 'resposta' | 'diverses' | 'confusa' | 'temari' | 'altres'
+  comment: string
+  date: string
+  /** Còpia de la pregunta tal com era quan es va marcar. */
+  question: Pick<Question, 'text' | 'options' | 'correctIndex' | 'subtopicId'>
 }

@@ -1,42 +1,42 @@
-// Curs de mostra per provar l'aplicació mentre no tenim el banc real generat a partir del PDF.
+// Curs de mostra per provar l'aplicació mentre no tenim el banc real generat a partir del temari.
 // Té el mateix format que un paquet importat des de l'ordinador.
 
 import { CONTENT_FORMAT, FORMAT_VERSION, type ContentPackage } from './package'
 import type { Question, Subtopic, Topic } from './types'
 
-const COURSE = 'permis-b-mostra'
+const COURSE = 'auxiliar-veterinaria-mostra'
 const created = '2026-11-16T00:00:00.000Z'
 
 const topics: Topic[] = [
-  { id: 't1', courseId: COURSE, number: '1', title: 'Velocitat', order: 1, createdAt: created },
-  { id: 't2', courseId: COURSE, number: '2', title: 'Alcohol i conducció', order: 2, createdAt: created },
-  { id: 't3', courseId: COURSE, number: '3', title: 'Seguretat passiva i emergències', order: 3, createdAt: created },
+  { id: 't1', courseId: COURSE, number: '1', title: 'Exploració clínica', order: 1, createdAt: created },
+  { id: 't2', courseId: COURSE, number: '2', title: 'Higiene i esterilització', order: 2, createdAt: created },
+  { id: 't3', courseId: COURSE, number: '3', title: 'Prevenció i tòxics', order: 3, createdAt: created },
 ]
 
 const subtopics: Subtopic[] = [
   {
-    id: 't1-1', courseId: COURSE, topicId: 't1', number: '1.1', title: 'Límits genèrics per a turismes', order: 1,
-    content: 'Autopistes i autovies: 120 km/h. Carreteres convencionals: 90 km/h. Vies urbanes amb un únic carril per sentit: 30 km/h. Vies urbanes amb dos o més carrils per sentit: 50 km/h.',
+    id: 't1-1', courseId: COURSE, topicId: 't1', number: '1.1', title: 'Constants vitals', order: 1,
+    content: 'La temperatura del gos i del gat es pren per via rectal i el valor normal se situa aproximadament entre 38 i 39 °C. El temps de reompliment capil·lar normal és inferior a 2 segons. El pols es pren habitualment a l’artèria femoral, a la cara interna de la cuixa.',
   },
   {
-    id: 't1-2', courseId: COURSE, topicId: 't1', number: '1.2', title: 'Distància de detenció', order: 2,
-    content: 'La distància de detenció és la suma de la distància de reacció i la distància de frenada. La de frenada creix amb el quadrat de la velocitat i augmenta amb el paviment mullat.',
+    id: 't1-2', courseId: COURSE, topicId: 't1', number: '1.2', title: 'Color de les mucoses', order: 2,
+    content: 'Mucoses rosades: normals. Pàl·lides: possible anèmia o xoc. Blavoses (cianòtiques): manca d’oxigen. Grogues (ictèriques): acumulació de bilirubina, sovint per problemes hepàtics.',
   },
   {
-    id: 't2-1', courseId: COURSE, topicId: 't2', number: '2.1', title: 'Taxes màximes d’alcohol', order: 1,
-    content: 'Taxa general: 0,5 g/l en sang o 0,25 mg/l en aire espirat. Conductors novells (menys de dos anys de permís) i professionals: 0,3 g/l en sang o 0,15 mg/l en aire. Negar-se a fer la prova és un delicte.',
+    id: 't2-1', courseId: COURSE, topicId: 't2', number: '2.1', title: 'Conceptes bàsics', order: 1,
+    content: 'L’asèpsia és el conjunt de mesures per evitar que els microorganismes arribin a una zona. L’antisèpsia elimina o redueix microorganismes sobre teixits vius (pell, ferides). La desinfecció s’aplica sobre objectes i superfícies. L’esterilització elimina totes les formes de vida microbiana, incloses les espores.',
   },
   {
-    id: 't2-2', courseId: COURSE, topicId: 't2', number: '2.2', title: 'Efectes de l’alcohol', order: 2,
-    content: 'L’alcohol augmenta el temps de reacció, redueix el camp visual (efecte túnel) i dona una falsa sensació de seguretat. Només el temps elimina l’alcohol de l’organisme.',
+    id: 't2-2', courseId: COURSE, topicId: 't2', number: '2.2', title: 'L’autoclau', order: 2,
+    content: 'L’autoclau esterilitza amb vapor d’aigua a pressió. Un cicle habitual treballa a 121 °C. El material s’ha de netejar i embolcallar abans de posar-lo a l’autoclau, i la cinta indicadora canvia de color quan el paquet ha passat pel procés.',
   },
   {
-    id: 't3-1', courseId: COURSE, topicId: 't3', number: '3.1', title: 'Cinturó i sistemes de retenció infantil', order: 1,
-    content: 'El cinturó és obligatori per a tots els ocupants. Els menors d’una alçada igual o inferior a 135 cm han d’utilitzar un sistema de retenció infantil adequat. Si es col·loca una cadira d’esquena a la marxa al seient davanter, cal desactivar l’airbag frontal.',
+    id: 't3-1', courseId: COURSE, topicId: 't3', number: '3.1', title: 'Zoonosis', order: 1,
+    content: 'Una zoonosi és una malaltia que es pot transmetre entre els animals i les persones. Exemples: la ràbia, la leishmaniosi (transmesa per la picada del flebòtom) o la toxoplasmosi (el gat n’elimina els ous per la femta).',
   },
   {
-    id: 't3-2', courseId: COURSE, topicId: 't3', number: '3.2', title: 'Senyalització d’emergència', order: 2,
-    content: 'Des de l’1 de gener de 2026, el vehicle immobilitzat es senyalitza amb la llum V-16 connectada, col·locada a la part més alta del vehicle. En sortir del vehicle en via interurbana cal posar-se l’armilla reflectant.',
+    id: 't3-2', courseId: COURSE, topicId: 't3', number: '3.2', title: 'Tòxics habituals', order: 2,
+    content: 'Per al gos són tòxics la xocolata (teobromina), el xilitol i el raïm. Per al gat són especialment perillosos el paracetamol i els lliris.',
   },
 ]
 
@@ -51,35 +51,35 @@ function q(subtopicId: string, concept: string, text: string, options: string[],
 }
 
 const questions: Question[] = [
-  q('t1-1', 'límit autopista', 'Quina és la velocitat màxima genèrica d’un turisme en autopista o autovia?', ['100 km/h', '110 km/h', '120 km/h', '130 km/h'], 2, 'En autopistes i autovies el límit genèric per a turismes és de 120 km/h.'),
-  q('t1-1', 'límit carretera convencional', 'I en una carretera convencional?', ['80 km/h', '90 km/h', '100 km/h', '110 km/h'], 1, 'El límit genèric en carretera convencional és de 90 km/h.'),
-  q('t1-1', 'límit urbà un carril', 'En una via urbana amb un únic carril per sentit, la velocitat màxima genèrica és…', ['20 km/h', '30 km/h', '40 km/h', '50 km/h'], 1, 'Amb un únic carril per sentit, el límit urbà genèric és de 30 km/h.'),
-  q('t1-1', 'límit urbà dos carrils', 'En una via urbana amb dos o més carrils per sentit, la velocitat màxima genèrica és…', ['30 km/h', '40 km/h', '50 km/h', '60 km/h'], 2, 'Amb dos o més carrils per sentit, el límit urbà genèric és de 50 km/h.'),
+  q('t1-1', 'via de presa de temperatura', 'Per quina via es pren habitualment la temperatura a un gos a la clínica?', ['Oral', 'Rectal', 'Auricular amb termòmetre de mercuri', 'Axil·lar'], 1, 'La via rectal és la referència a la clínica de petits animals.'),
+  q('t1-1', 'temperatura normal del gos', 'Quin és, aproximadament, l’interval de temperatura normal d’un gos adult?', ['35–36 °C', '36–37 °C', '38–39 °C', '40–41 °C'], 2, 'La temperatura normal del gos se situa al voltant de 38–39 °C, més alta que la de les persones.'),
+  q('t1-1', 'temps de reompliment capil·lar', 'Quin és el temps de reompliment capil·lar normal?', ['Menys de 2 segons', 'Entre 3 i 4 segons', 'Entre 5 i 6 segons', 'Més de 10 segons'], 0, 'Si la mucosa tarda més de 2 segons a recuperar el color, pot indicar mala perfusió.'),
+  q('t1-1', 'presa del pols', 'On es pren habitualment el pols a un gos?', ['A l’artèria femoral, a la cara interna de la cuixa', 'A la punta de la cua', 'Al coixinet de la pota', 'A l’orella'], 0, 'L’artèria femoral és fàcil de palpar a la cara interna de la cuixa.'),
 
-  q('t1-2', 'composició distància detenció', 'La distància de detenció és…', ['Només la distància de frenada', 'La distància de reacció més la de frenada', 'La distància de seguretat amb el vehicle de davant', 'La distància recorreguda en un segon'], 1, 'Detenció = reacció (mentre el conductor reacciona) + frenada (des que frena fins que s’atura).'),
-  q('t1-2', 'velocitat i frenada', 'Si dupliques la velocitat, la distància de frenada aproximadament…', ['Es duplica', 'Es triplica', 'Es multiplica per quatre', 'No varia'], 2, 'La distància de frenada creix amb el quadrat de la velocitat: el doble de velocitat suposa unes quatre vegades més distància.'),
-  q('t1-2', 'temps de reacció', 'Durant el temps de reacció, el vehicle…', ['Ja comença a frenar', 'Continua avançant a la mateixa velocitat', 'S’atura', 'Redueix la velocitat a la meitat'], 1, 'Mentre el conductor percep el perill i reacciona, el vehicle continua a la mateixa velocitat.'),
-  q('t1-2', 'paviment mullat', 'Amb el paviment mullat, la distància de frenada…', ['Disminueix', 'No canvia', 'Augmenta', 'Només canvia en vehicles pesants'], 2, 'L’aigua redueix l’adherència dels pneumàtics i la distància de frenada augmenta.'),
+  q('t1-2', 'mucoses normals', 'De quin color són les mucoses d’un animal sa?', ['Blanques', 'Rosades', 'Grogues', 'Blavoses'], 1, 'Les mucoses rosades indiquen una bona oxigenació i perfusió.'),
+  q('t1-2', 'mucoses pàl·lides', 'Unes mucoses pàl·lides poden indicar…', ['Febre', 'Anèmia o xoc', 'Deshidratació lleu sempre', 'Un estat normal'], 1, 'La pal·lidesa apunta a poca sang o mala circulació: anèmia o xoc.'),
+  q('t1-2', 'mucoses cianòtiques', 'Les mucoses blavoses (cianòtiques) indiquen…', ['Manca d’oxigen', 'Excés de calor', 'Problemes de pell', 'Bona salut'], 0, 'La cianosi apareix quan la sang no porta prou oxigen.'),
+  q('t1-2', 'mucoses ictèriques', 'Si les mucoses es veuen grogues, parlem de…', ['Cianosi', 'Icterícia', 'Hiperèmia', 'Pal·lidesa'], 1, 'La icterícia és la coloració groga per acumulació de bilirubina.'),
 
-  q('t2-1', 'taxa general sang', 'Quina és la taxa màxima general d’alcohol en sang?', ['0,3 g/l', '0,5 g/l', '0,8 g/l', '0,25 g/l'], 1, 'La taxa general és de 0,5 grams per litre en sang.'),
-  q('t2-1', 'taxa general aire', 'Quina és la taxa màxima general d’alcohol en aire espirat?', ['0,15 mg/l', '0,25 mg/l', '0,5 mg/l', '0,3 mg/l'], 1, 'La taxa general en aire espirat és de 0,25 mil·ligrams per litre.'),
-  q('t2-1', 'taxa novells', 'Un conductor amb menys de dos anys de permís pot donar en aire espirat com a màxim…', ['0,10 mg/l', '0,15 mg/l', '0,25 mg/l', '0,30 mg/l'], 1, 'Novells i professionals tenen una taxa més baixa: 0,15 mg/l en aire (0,3 g/l en sang).'),
-  q('t2-1', 'negativa a la prova', 'Negar-se a fer la prova d’alcoholèmia quan t’ho demana un agent és…', ['Una infracció lleu', 'Una infracció greu sense més conseqüències', 'Un delicte', 'Permès si no hi ha hagut accident'], 2, 'Negar-se a les proves d’alcohol o drogues és un delicte tipificat al Codi Penal.'),
+  q('t2-1', 'definició d’asèpsia', 'Què és l’asèpsia?', ['Destruir les espores d’un instrument', 'Les mesures per evitar que els microorganismes arribin a una zona', 'Netejar el terra amb lleixiu', 'Aplicar un antibiòtic'], 1, 'L’asèpsia és preventiva: evita la contaminació.'),
+  q('t2-1', 'antisèpsia', 'Un antisèptic s’aplica sobre…', ['Teixits vius, com la pell', 'Superfícies del quiròfan', 'L’instrumental metàl·lic', 'El terra'], 0, 'Els antisèptics són per a teixits vius; els desinfectants, per a objectes i superfícies.'),
+  q('t2-1', 'desinfecció', 'La desinfecció s’aplica sobre…', ['Ferides obertes', 'Objectes i superfícies', 'Mucoses', 'La sang'], 1, 'Desinfectar és reduir microorganismes en objectes i superfícies inerts.'),
+  q('t2-1', 'esterilització', 'Quin procés elimina totes les formes de vida microbiana, incloses les espores?', ['La neteja', 'La desinfecció', 'L’esterilització', 'L’antisèpsia'], 2, 'Només l’esterilització elimina també les espores.'),
 
-  q('t2-2', 'alcohol i temps de reacció', 'Com afecta l’alcohol el temps de reacció?', ['El redueix', 'L’augmenta', 'No l’afecta', 'Només l’afecta de nit'], 1, 'L’alcohol alenteix el sistema nerviós: es triga més a reaccionar.'),
-  q('t2-2', 'efecte túnel', 'L’anomenat «efecte túnel» provocat per l’alcohol consisteix en…', ['Una reducció del camp visual', 'Una millora de la visió nocturna', 'Veure-hi doble només en túnels', 'Una sensibilitat més gran a l’enlluernament només'], 0, 'L’alcohol estreny el camp visual: es perceben pitjor els elements laterals.'),
-  q('t2-2', 'eliminació de l’alcohol', 'Quina és l’única manera eficaç d’eliminar l’alcohol de l’organisme?', ['Prendre cafè', 'Dutxar-se amb aigua freda', 'Deixar passar el temps', 'Menjar abundantment'], 2, 'El cafè o la dutxa no redueixen l’alcoholèmia; només el temps ho fa.'),
-  q('t2-2', 'falsa seguretat', 'Quin efecte psicològic produeix sovint l’alcohol?', ['Més prudència', 'Una falsa sensació de seguretat', 'Més concentració', 'Cap efecte psicològic'], 1, 'L’alcohol fa sobrevalorar les pròpies capacitats i assumir més riscos.'),
+  q('t2-2', 'funcionament de l’autoclau', 'Amb què esterilitza un autoclau?', ['Amb llum ultraviolada', 'Amb vapor d’aigua a pressió', 'Amb alcohol', 'Amb aire fred'], 1, 'L’autoclau combina calor humida i pressió.'),
+  q('t2-2', 'temperatura de l’autoclau', 'Quina temperatura fa servir un cicle habitual d’autoclau?', ['60 °C', '90 °C', '121 °C', '200 °C'], 2, 'Un cicle estàndard treballa a 121 °C.'),
+  q('t2-2', 'preparació del material', 'Què s’ha de fer amb l’instrumental abans de posar-lo a l’autoclau?', ['Res, s’hi posa brut', 'Netejar-lo i embolcallar-lo', 'Submergir-lo en oli', 'Escalfar-lo al forn'], 1, 'L’autoclau no substitueix la neteja: la brutícia protegeix els microorganismes.'),
+  q('t2-2', 'cinta indicadora', 'Per a què serveix la cinta indicadora dels paquets?', ['Per tancar el paquet i prou', 'Per indicar que el paquet ha passat pel procés d’esterilització', 'Per marcar la data de compra', 'Per identificar el veterinari'], 1, 'La cinta canvia de color quan ha estat exposada al cicle.'),
 
-  q('t3-1', 'obligació cinturó', 'Qui ha de portar el cinturó de seguretat cordat en un turisme?', ['Només el conductor', 'El conductor i el passatger del davant', 'Tots els ocupants', 'Només en vies interurbanes'], 2, 'El cinturó és obligatori per a tots els ocupants, en vies urbanes i interurbanes.'),
-  q('t3-1', 'alçada SRI', 'Fins a quina alçada els menors han d’utilitzar un sistema de retenció infantil?', ['120 cm', '135 cm', '150 cm', '160 cm'], 1, 'Els menors d’una alçada igual o inferior a 135 cm han d’anar en un SRI adequat.'),
-  q('t3-1', 'airbag i cadira d’esquena', 'Si es col·loca una cadira infantil d’esquena a la marxa al seient del davant…', ['Cal desactivar l’airbag frontal del passatger', 'Cal activar l’airbag lateral', 'No cal fer res', 'Està prohibit en tots els casos'], 0, 'L’airbag frontal podria impactar contra la cadira i lesionar el nen: s’ha de desactivar.'),
-  q('t3-1', 'reposacaps', 'Com ha d’estar regulat el reposacaps?', ['Tan baix com sigui possible', 'Amb la part superior a l’alçada de la part superior del cap', 'A l’alçada del coll', 'És indiferent'], 1, 'Ben regulat, el reposacaps protegeix del cop de fuet en una col·lisió per l’abast.'),
+  q('t3-1', 'definició de zoonosi', 'Què és una zoonosi?', ['Una malaltia exclusiva dels gats', 'Una malaltia transmissible entre animals i persones', 'Una vacuna obligatòria', 'Un tipus de paràsit intestinal'], 1, 'Les zoonosis passen dels animals a les persones, i a l’inrevés.'),
+  q('t3-1', 'transmissió de la leishmaniosi', 'Com es transmet la leishmaniosi?', ['Per la picada del flebòtom', 'Per la saliva en una mossegada', 'Per l’aigua', 'Per contacte amb la pell'], 0, 'El flebòtom, un petit mosquit, transmet el paràsit quan pica.'),
+  q('t3-1', 'toxoplasmosi i gat', 'En la toxoplasmosi, per on elimina el gat els ous del paràsit?', ['Per la saliva', 'Per la femta', 'Per l’orina', 'Pel pèl'], 1, 'Per això cal netejar la sorra cada dia i amb guants.'),
+  q('t3-1', 'ràbia', 'Quina d’aquestes malalties és una zoonosi?', ['La ràbia', 'El brom (distemper caní)', 'La parvovirosi canina', 'La calicivirosi felina'], 0, 'La ràbia es pot transmetre a les persones; les altres afecten només els animals.'),
 
-  q('t3-2', 'V-16', 'Des de l’1 de gener de 2026, amb quin dispositiu s’ha de senyalitzar un turisme immobilitzat a la via?', ['Dos triangles', 'Llum V-16 connectada', 'Només l’armilla reflectant', 'Només els llums d’emergència'], 1, 'La llum V-16 connectada substitueix els triangles com a senyalització obligatòria.'),
-  q('t3-2', 'col·locació V-16', 'On es col·loca la llum V-16?', ['A terra, 50 metres darrere', 'A la part més alta del vehicle', 'Dins el maleter', 'Al seient del conductor'], 1, 'Es col·loca a la part més alta del vehicle perquè sigui visible des de lluny, sense haver de caminar per la calçada.'),
-  q('t3-2', 'armilla reflectant', 'Quan és obligatori posar-se l’armilla reflectant?', ['Sempre que s’aturi el motor', 'En sortir del vehicle immobilitzat en una via interurbana', 'Només de nit', 'Mai, és opcional'], 1, 'En sortir del vehicle a la calçada o al voral d’una via interurbana cal portar-la posada.'),
-  q('t3-2', 'llums d’emergència', 'Què s’ha de fer primer en quedar immobilitzat a la via?', ['Encendre els llums d’emergència', 'Obrir el capó', 'Sortir a la calçada a demanar ajuda', 'Apagar tots els llums'], 0, 'Els llums d’emergència avisen la resta de conductors immediatament.'),
+  q('t3-2', 'xocolata i gos', 'Per què la xocolata és tòxica per als gossos?', ['Pel sucre', 'Per la teobromina', 'Per la llet', 'Pel greix'], 1, 'Els gossos eliminen molt lentament la teobromina.'),
+  q('t3-2', 'paracetamol i gat', 'Quin medicament d’ús humà és especialment perillós per als gats?', ['El paracetamol', 'El sèrum fisiològic', 'La vitamina C', 'La clorhexidina diluïda per netejar la pell'], 0, 'El gat no pot metabolitzar bé el paracetamol, fins i tot en dosis petites.'),
+  q('t3-2', 'xilitol', 'El xilitol, un edulcorant de xiclets i caramels, és tòxic per a…', ['Els gossos', 'Els peixos', 'Cap animal', 'Només els conills'], 0, 'En el gos provoca una baixada brusca de glucosa.'),
+  q('t3-2', 'lliris i gat', 'Quina planta és molt tòxica per als gats?', ['L’alfàbrega', 'El lliri', 'La menta', 'L’herba gatera'], 1, 'Fins i tot el pol·len del lliri pot causar dany renal al gat.'),
 ]
 
 export const samplePackage: ContentPackage = {
@@ -88,8 +88,8 @@ export const samplePackage: ContentPackage = {
   createdAt: created,
   course: {
     id: COURSE,
-    title: 'Permís B · curs de mostra',
-    description: 'Contingut de prova. La normativa oficial publicada preval en cas de discrepància.',
+    title: 'Auxiliar de veterinària',
+    description: 'Curs de mostra per provar l’aplicació.',
     contentVersion: 1,
     updatedAt: created,
   },

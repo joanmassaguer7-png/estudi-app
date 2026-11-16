@@ -59,3 +59,38 @@ export const SearchIcon = ({ size = 20 }: P) => (
     <path d="m20 20-3.5-3.5" />
   </svg>
 )
+
+export const PawIcon = ({ size = 24, className }: P) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" className={className} aria-hidden="true" fill="currentColor">
+    <ellipse cx="6" cy="10" rx="2.1" ry="2.7" />
+    <ellipse cx="10" cy="5.8" rx="2.1" ry="2.8" />
+    <ellipse cx="14.4" cy="5.8" rx="2.1" ry="2.8" />
+    <ellipse cx="18.3" cy="10" rx="2.1" ry="2.7" />
+    <path d="M12.2 11.2c2.6 0 5.6 3.6 5.6 6.1 0 1.8-1.3 2.7-2.8 2.7-1.2 0-1.8-.6-2.8-.6s-1.6.6-2.8.6c-1.5 0-2.8-.9-2.8-2.7 0-2.5 3-6.1 5.6-6.1z" />
+  </svg>
+)
+
+export const BoltIcon = ({ size = 24, className }: P) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" className={className} aria-hidden="true" fill="currentColor">
+    <path d="M13.5 2 4.5 13.5h6L9.5 22l10-12.5h-6.2L13.5 2z" />
+  </svg>
+)
+
+export const MoonIcon = ({ size = 22, className }: P) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" className={className} aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round">
+    <path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z" />
+  </svg>
+)
+
+export const SunIcon = ({ size = 22, className }: P) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" className={className} aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+    <circle cx="12" cy="12" r="4" />
+    <path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4" />
+  </svg>
+)
+
+export const ChartIcon = ({ size = 22, className }: P) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" className={className} aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+    <path d="M4 20h16M7 16v-5M12 16V6M17 16v-8" />
+  </svg>
+)

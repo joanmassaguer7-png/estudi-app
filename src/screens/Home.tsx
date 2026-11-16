@@ -2,31 +2,54 @@ import { useState } from 'react'
 import { crownsKey, setSetting } from '../data/db'
 import type { CourseData } from '../data/hooks'
 import {
-  buildDailyReview,
-  buildErrorsTest,
+  buildExtraTest,
+  pendingErrors,
+  planErrors,
+  EXTRA_TEST_SIZE,
   buildTotalReview,
-  dailyCandidateTopics,
   MAX_CROWNS,
   mastery,
   TOTAL_PER_TOPIC,
 } from '../logic/select'
+import { doneToday, planDaily, reminderPhase, streak } from '../logic/daily'
+import { BACKUP_SNOOZE_KEY, LAST_BACKUP_KEY, useAppSettings } from '../data/hooks'
+import { mascotFace, mascotFor } from '../data/mascots'
+import { shareBackup } from '../data/package'
+import { useLiveQuery } from 'dexie-react-hooks'
+import { getSetting } from '../data/db'
+import { Guada } from '../components/Guada'
+import { TUTORIAL_KEY, type TutorialState } from './Tutorial'
+import { CHAPTERS } from '../tutorial/chapters'
 import type { Navigate } from '../nav'
-import { AlertIcon, CrownIcon, GamepadIcon, GearIcon, RepeatIcon, SearchIcon } from '../components/icons'
+import { AlertIcon, BoltIcon, ChartIcon, CrownIcon, GamepadIcon, GearIcon, MoonIcon, PawIcon, RepeatIcon, SearchIcon, SunIcon } from '../components/icons'
+import { setTheme, useTheme } from '../theme'
 import { ProgressBar, useToast } from '../components/ui'
 
 export function Home({ data, go }: { data: CourseData; go: Navigate }) {
+  const theme = useTheme()
   const { course, topics, questions, attempts, sessions, crowns } = data
   const toast = useToast()
   const [search, setSearch] = useState('')
+  const [popped, setPopped] = useState<string | null>(null)
 
   const visibleTopics = topics.filter((t) =>
     `${t.number} ${t.title}`.toLowerCase().includes(search.trim().toLowerCase()),
   )
-  const errorsAvailable = buildErrorsTest(questions, attempts).length
+  const errorsAvailable = pendingErrors(questions, attempts).length
   const totalCount = topics.reduce(
     (sum, t) => sum + Math.min(TOTAL_PER_TOPIC, questions.filter((q) => q.topicId === t.id).length),
     0,
   )
+  const overall = mastery(questions, attempts)
+  const settings = useAppSettings()
+  const reminder = settings?.reminder
+  const dailyDone = doneToday(sessions)
+  const days = streak(sessions)
+  const late = !dailyDone && reminder?.enabled && reminderPhase(reminder.time) === 'tard'
+  const mascot = mascotFor()
+  const tutorial = useLiveQuery(() => getSetting<TutorialState>(TUTORIAL_KEY, { done: [] }), [])
+  const showTutorial = tutorial && !tutorial.dismissed && tutorial.done.length < CHAPTERS.length
+  const backupDue = settings ? backupDaysDue(settings.lastBackup, settings.backupSnooze, sessions.map((x) => x.finishedAt)) : null
 
   async function toggleCrown(topicId: string) {
     const active = crowns.includes(topicId)
@@ -34,27 +57,22 @@ export function Home({ data, go }: { data: CourseData; go: Navigate }) {
       toast(`Només pots seleccionar ${MAX_CROWNS} temes per al Repàs diari.`)
       return
     }
+    setPopped(active ? null : topicId)
     const next = active ? crowns.filter((id) => id !== topicId) : [...crowns, topicId]
     await setSetting(crownsKey(course.id), next)
   }
 
   function startDaily() {
-    const lastDaily = sessions.find((s) => s.mode === 'repas-diari')
-    const qs = buildDailyReview(topics, crowns, questions, attempts, lastDaily?.questionIds)
-    if (qs.length === 0) return toast('Encara no hi ha preguntes per als temes seleccionats.')
-    const included = dailyCandidateTopics(topics, crowns)
-    go({
-      name: 'pretest',
-      test: {
-        mode: 'repas-diari',
-        title: 'Repàs diari',
-        description:
-          crowns.length > 0
-            ? `Temes amb corona: ${included.map((t) => t.number).join(', ')}.`
-            : `Cap corona activa: s’inclouen ${included.length === topics.length ? 'tots els temes' : 'els 10 temes més recents'}.`,
-        questions: qs,
-      },
-    })
+    const test = planDaily(data)
+    if (!test) return toast('Encara no hi ha preguntes per als temes seleccionats.')
+    go({ name: 'pretest', test })
+  }
+
+  async function backupNow() {
+    const r = await shareBackup(settings?.backupEmail)
+    if (r === 'cancel·lada') return
+    await setSetting(LAST_BACKUP_KEY, new Date().toISOString())
+    toast(r === 'enviada' ? 'Còpia enviada.' : 'Còpia descarregada. Guarda-la en un lloc segur.')
   }
 
   function startTotal() {
@@ -65,77 +83,188 @@ export function Home({ data, go }: { data: CourseData; go: Navigate }) {
       test: {
         mode: 'repas-total',
         title: 'Repàs total',
-        description: `${TOTAL_PER_TOPIC} preguntes de cada un dels ${topics.length} temes, en ordre aleatori.`,
+        description: `${TOTAL_PER_TOPIC} preguntes de cada tema, barrejades.`,
+        questions: qs,
+      },
+    })
+  }
+
+  const extraAvailable = data.extraQuestions.length + questions.filter((q) => q.difficulty === 3).length
+  function startExtra() {
+    const qs = buildExtraTest(data.extraQuestions, questions, attempts)
+    if (qs.length === 0) return toast('Aquest curs encara no té preguntes extra difícils.')
+    go({
+      name: 'pretest',
+      test: {
+        mode: 'extra',
+        title: 'Extra difícil',
+        description: 'Preguntes pensades per posar-te a prova: casos pràctics, matisos i trampes habituals. Ideal quan ja domines el temari.',
         questions: qs,
       },
     })
   }
 
   function startErrors() {
-    const qs = buildErrorsTest(questions, attempts)
-    if (qs.length === 0) return toast('No tens cap pregunta fallada pendent. Molt bé!')
+    const plan = planErrors(questions, attempts)
+    if (plan.questions.length === 0) return toast('No tens cap pregunta fallada pendent.')
+    const parts = [
+      plan.repeated ? `${plan.repeated} ${plan.repeated === 1 ? 'pregunta que vas fallar' : 'preguntes que vas fallar'}` : '',
+      plan.siblings ? `${plan.siblings} ${plan.siblings === 1 ? 'pregunta nova' : 'preguntes noves'} del mateix tema per comprovar que ho has entès` : '',
+    ].filter(Boolean)
     go({
       name: 'pretest',
       test: {
         mode: 'errors',
         title: 'Test d’errors',
-        description: 'Preguntes que vas fallar l’últim cop que les vas respondre.',
-        questions: qs,
+        description: `${parts.join(' i ')}. Una pregunta fallada surt de la llista quan l’encertes dues vegades seguides.`.replace(/^./, (c) => c.toUpperCase()),
+        questions: plan.questions,
       },
     })
   }
 
   return (
-    <div className="screen">
+    <div className="screen home">
       <header className="home-header">
         <div>
-          <p className="eyebrow">Curs</p>
-          <h1>{course.title}</h1>
+          {settings?.name && <p className="greeting">Hola, {settings.name}!</p>}
+          <h1 className="course-title">{course.title}</h1>
+          <p className="course-progress">
+            {overall.mastered} de {overall.total} preguntes dominades
+          </p>
         </div>
-        <button className="icon-btn" onClick={() => go({ name: 'manage' })} aria-label="Gestionar">
-          <GearIcon />
-        </button>
+        <div className="home-actions">
+          <button
+            className="icon-btn theme-btn"
+            onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+            aria-label={theme === 'dark' ? 'Desactivar el mode fosc' : 'Activar el mode fosc'}
+            title={theme === 'dark' ? 'Mode clar' : 'Mode fosc'}
+          >
+            <span key={theme} className="theme-swap">{theme === 'dark' ? <SunIcon /> : <MoonIcon />}</span>
+          </button>
+          <button className="icon-btn" onClick={() => go({ name: 'stats' })} aria-label="Estadístiques" title="Estadístiques">
+            <ChartIcon />
+          </button>
+          <button className="icon-btn" onClick={() => go({ name: 'manage' })} aria-label="Gestionar" title="Gestionar">
+            <GearIcon />
+          </button>
+        </div>
       </header>
 
-      <label className="search">
-        <SearchIcon />
-        <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar tema" />
-      </label>
-
-      <section>
-        <h2>Jocs</h2>
-        <div className="game-grid">
-          <button className="game-card accent" onClick={startDaily}>
-            <CrownIcon size={40} />
-            <span className="game-title">Repàs diari</span>
-            <span className="game-sub">Fins a 10 preguntes</span>
-          </button>
-          <button className="game-card" onClick={startTotal}>
-            <RepeatIcon size={36} />
-            <span className="game-title">Repàs total</span>
-            <span className="game-sub">{totalCount} preguntes</span>
-          </button>
-          <button className="game-card" onClick={startErrors}>
-            <AlertIcon size={36} />
-            <span className="game-title">Test d’errors</span>
-            <span className="game-sub">{errorsAvailable} pendents</span>
-          </button>
-          <button className="game-card" disabled title="Properament">
-            <GamepadIcon size={40} />
-            <span className="game-title">Trivial</span>
-            <span className="game-sub">Properament</span>
+      {showTutorial && (
+        <div className="tut-banner">
+          <Guada mood="hola" size={64} />
+          <div>
+            <strong>{tutorial.done.length === 0 ? `${settings?.name ? settings.name + ', t' : 'T'}’ensenyo com funciona l’app?` : 'Continuem el tutorial?'}</strong>
+            <p>
+              {tutorial.done.length === 0
+                ? 'Soc la Guada Vet. En pocs minuts sabràs fer-ho tot.'
+                : `Portes ${tutorial.done.length} de ${CHAPTERS.length} capítols.`}
+            </p>
+            <button className="primary-btn small-btn" onClick={() => go({ name: 'tutorial' })}>
+              {tutorial.done.length === 0 ? 'Començar el tutorial' : 'Continuar'}
+            </button>
+          </div>
+          <button
+            className="tut-banner-close"
+            aria-label="Amagar el tutorial"
+            onClick={() => setSetting(TUTORIAL_KEY, { ...tutorial, dismissed: true })}
+          >
+            ✕
           </button>
         </div>
-      </section>
+      )}
 
-      <section>
+      {/* L'element protagonista: el Repàs diari com una placa identificativa de collar. */}
+      <button className="tag-hero" onClick={startDaily}>
+        <span className="tag-ring" aria-hidden="true" />
+        <span className="sign-inner">
+          <span className="sign-crown has-face" title={`Avui t’acompanya en ${mascot.name}`}>
+            <img key={late ? 'trist' : 'content'} src={mascotFace(mascot, late ? 'trist' : 'content')} alt={mascot.name} width={56} height={56} />
+          </span>
+          <span className="sign-text">
+            <span className="sign-title">Repàs diari</span>
+            <span className="sign-sub">
+              {dailyDone
+                ? `Fet avui. En ${mascot.name} ja té la seva galeta.`
+                : late
+                  ? `En ${mascot.name} està trist: encara no l’has fet.`
+                  : crowns.length > 0
+                    ? `Fins a 10 preguntes de ${crowns.length === 1 ? 'l’únic tema marcat' : `${crowns.length} temes marcats`}`
+                    : 'Fins a 10 preguntes de tots els temes'}
+            </span>
+            {days > 0 && (
+              <span className={`streak ${dailyDone ? 'lit' : ''}`}>
+                <PawIcon size={15} /> {days} {days === 1 ? 'dia seguit' : 'dies seguits'}
+              </span>
+            )}
+          </span>
+          <span className="sign-go" aria-hidden="true">
+            {dailyDone ? 'Repetir' : 'Començar'}
+          </span>
+        </span>
+      </button>
+
+      {backupDue !== null && (
+        <div className="backup-banner" role="status">
+          <p>
+            {backupDue === 0
+              ? 'Encara no has fet cap còpia de seguretat.'
+              : `Fa ${backupDue} dies que no fas cap còpia de seguretat.`}{' '}
+            Les dades només són en aquest dispositiu.
+          </p>
+          <div className="backup-actions">
+            <button className="link-btn" onClick={() => setSetting(BACKUP_SNOOZE_KEY, new Date().toISOString())}>
+              Més tard
+            </button>
+            <button className="primary-btn small-btn" onClick={backupNow}>
+              Enviar una còpia
+            </button>
+          </div>
+        </div>
+      )}
+
+      <div className="mode-row">
+        <button className="mode-tile" onClick={startTotal}>
+          <RepeatIcon size={26} />
+          <span className="mode-title">Repàs total</span>
+          <span className="mode-sub">{totalCount} preguntes</span>
+        </button>
+        <button className="mode-tile" onClick={startErrors}>
+          <AlertIcon size={26} />
+          <span className="mode-title">Errors</span>
+          <span className="mode-sub">
+            {errorsAvailable === 0 ? 'Cap pendent' : `${errorsAvailable} per repassar`}
+          </span>
+          {errorsAvailable > 0 && <span className="mode-badge">{errorsAvailable}</span>}
+        </button>
+        <button className="mode-tile" onClick={() => go({ name: 'trivial-pick' })}>
+          <GamepadIcon size={28} />
+          <span className="mode-title">Trivial</span>
+          <span className="mode-sub">Completa els subtemes</span>
+        </button>
+        <button className="mode-tile extra" onClick={startExtra} disabled={extraAvailable === 0}>
+          <BoltIcon size={26} />
+          <span className="mode-title">Extra difícil</span>
+          <span className="mode-sub">{extraAvailable === 0 ? 'Sense preguntes' : `${Math.min(EXTRA_TEST_SIZE, extraAvailable)} preguntes`}</span>
+        </button>
+      </div>
+
+      <section className="home-section">
         <div className="section-head">
           <h2>Temes</h2>
-          <span className="hint">
-            <CrownIcon size={16} className="crown on" /> {crowns.length}/{MAX_CROWNS} al Repàs diari
+          <span className="crown-counter" title="Temes marcats per al Repàs diari">
+            <CrownIcon size={15} /> {crowns.length}/{MAX_CROWNS}
           </span>
         </div>
-        {visibleTopics.length === 0 && <p className="muted">Cap tema coincideix amb la cerca.</p>}
+
+        {topics.length > 4 && (
+          <label className="search">
+            <SearchIcon />
+            <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Cerca un tema" />
+          </label>
+        )}
+        {visibleTopics.length === 0 && <p className="muted">Cap tema coincideix amb «{search}».</p>}
+
         <div className="topic-grid">
           {visibleTopics.map((t) => {
             const m = mastery(
@@ -143,56 +272,91 @@ export function Home({ data, go }: { data: CourseData; go: Navigate }) {
               attempts,
             )
             const on = crowns.includes(t.id)
+            const subCount = data.subtopics.filter((s) => s.topicId === t.id).length
             return (
-              <div key={t.id} className="topic-card">
+              <article key={t.id} className={`topic-card ${on ? 'crowned' : ''}`}>
                 <button className="topic-main" onClick={() => go({ name: 'topic', topicId: t.id })}>
-                  <span className="topic-number">T{t.number}</span>
+                  <span className="topic-number">{t.number}</span>
                   <span className="topic-title">{t.title}</span>
-                  <ProgressBar value={m.total ? m.mastered / m.total : 0} />
                   <span className="topic-meta">
-                    {m.mastered}/{m.total} dominades
+                    {subCount} subtemes, {m.mastered} de {m.total} dominades
                   </span>
+                  <ProgressBar value={m.total ? m.mastered / m.total : 0} />
                 </button>
                 <button
-                  className={`crown-btn ${on ? 'on' : ''}`}
+                  className={`crown-btn ${on ? 'on' : ''} ${popped === t.id ? 'pop' : ''}`}
                   onClick={() => toggleCrown(t.id)}
                   aria-pressed={on}
-                  aria-label={on ? 'Treure del Repàs diari' : 'Afegir al Repàs diari'}
+                  aria-label={on ? `Treure el tema ${t.number} del Repàs diari` : `Afegir el tema ${t.number} al Repàs diari`}
                 >
-                  <CrownIcon size={22} />
+                  <CrownIcon size={20} />
                 </button>
-              </div>
+              </article>
             )
           })}
         </div>
       </section>
 
-      <section>
+      <section className="home-section">
         <div className="section-head">
-          <h2>Resultats</h2>
-          {sessions.length > 0 && (
+          <h2>Últims tests</h2>
+          {sessions.length > 4 && (
             <button className="link-btn" onClick={() => go({ name: 'history' })}>
-              Veure tot
+              Veure l’historial
             </button>
           )}
         </div>
-        {sessions.length === 0 && <p className="muted">Encara no has fet cap test.</p>}
+        {sessions.length === 0 && <p className="muted">Quan acabis un test, el resultat apareixerà aquí.</p>}
         <ul className="result-list">
           {sessions.slice(0, 4).map((s) => (
-            <li key={s.id}>
-              <button onClick={() => go({ name: 'summary', sessionId: s.id })}>
-                <span>
-                  <strong>{s.title}</strong>
-                  <small>{new Date(s.finishedAt).toLocaleString('ca-ES', { dateStyle: 'short', timeStyle: 'short' })}</small>
-                </span>
-                <span className="score">
-                  {s.correctCount}/{s.total}
-                </span>
-              </button>
-            </li>
+            <ResultRow key={s.id} title={s.title} date={s.finishedAt} correct={s.correctCount} total={s.total} onOpen={() => go({ name: 'summary', sessionId: s.id })} />
           ))}
         </ul>
       </section>
+
+      <footer className="home-footer">
+        <button className="tut-again" onClick={() => go({ name: 'tutorial', fromStart: true })}>
+          <Guada mood="hola" size={40} />
+          <span>Repetir el tutorial</span>
+        </button>
+      </footer>
     </div>
   )
+}
+
+export function ResultRow(props: { title: string; date: string; correct: number; total: number; onOpen: () => void }) {
+  const pct = props.total ? props.correct / props.total : 0
+  const tone = pct >= 0.9 ? 'good' : pct >= 0.6 ? 'mid' : 'bad'
+  return (
+    <li>
+      <button className="result-row" onClick={props.onOpen}>
+        <span className={`result-score ${tone}`}>
+          {props.correct}
+          <small>/{props.total}</small>
+        </span>
+        <span className="result-text">
+          <strong>{props.title}</strong>
+          <small>{new Date(props.date).toLocaleString('ca-ES', { dateStyle: 'medium', timeStyle: 'short' })}</small>
+        </span>
+      </button>
+    </li>
+  )
+}
+
+const DAY = 24 * 60 * 60 * 1000
+/**
+ * Dies des de l'última còpia si cal recordar-la (null si no cal).
+ * Es recorda cada 14 dies, i s'ajorna 3 dies si es prem «Més tard».
+ * Si mai s'ha fet cap còpia, es recorda una setmana després del primer test (retorna 0).
+ */
+function backupDaysDue(last: string | null, snooze: string | null, testDates: string[]): number | null {
+  const now = Date.now()
+  if (snooze && now - Date.parse(snooze) < 3 * DAY) return null
+  if (last) {
+    const days = Math.floor((now - Date.parse(last)) / DAY)
+    return days >= 14 ? days : null
+  }
+  if (testDates.length === 0) return null
+  const first = Math.min(...testDates.map((d) => Date.parse(d)))
+  return now - first >= 7 * DAY ? 0 : null
 }

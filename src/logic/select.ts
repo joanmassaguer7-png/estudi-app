@@ -19,6 +19,7 @@ export const MAX_CROWNS = 10
 export const TOTAL_PER_TOPIC = 5
 export const TOPIC_TEST_SIZE = 10
 export const ERRORS_TEST_MAX = 20
+export const EXTRA_TEST_SIZE = 15
 
 export function shuffle<T>(items: T[], rng: Rng = Math.random): T[] {
   const a = [...items]
@@ -153,12 +154,101 @@ export function buildTotalReview(topics: Topic[], questions: Question[], rng: Rn
   return shuffle(picked, rng)
 }
 
-/** Test d'errors: preguntes l'últim intent de les quals va ser incorrecte. */
-export function buildErrorsTest(questions: Question[], attempts: Attempt[], rng: Rng = Math.random): Question[] {
+/** Intents d'una pregunta, del més antic al més recent. */
+function historyOf(attempts: Attempt[]): Map<string, boolean[]> {
+  const map = new Map<string, boolean[]>()
+  for (const a of [...attempts].sort((x, y) => x.date.localeCompare(y.date))) {
+    const h = map.get(a.questionId) ?? []
+    h.push(a.correct)
+    map.set(a.questionId, h)
+  }
+  return map
+}
+
+/**
+ * Preguntes pendents de consolidar: s'han fallat alguna vegada i encara no
+ * s'han encertat dues vegades seguides des de l'última fallada.
+ */
+export function pendingErrors(questions: Question[], attempts: Attempt[]): Question[] {
+  const hist = historyOf(attempts)
+  return questions.filter((q) => {
+    const h = hist.get(q.id)
+    if (!h || !h.includes(false)) return false
+    const lastWrong = h.lastIndexOf(false)
+    return h.length - 1 - lastWrong < 2
+  })
+}
+
+export interface ErrorsPlan {
+  questions: Question[]
+  /** Preguntes fallades que tornen a sortir. */
+  repeated: number
+  /** Preguntes noves del mateix concepte o subtema, per comprovar que s'ha entès. */
+  siblings: number
+}
+
+/**
+ * Test d'errors intel·ligent:
+ *  - Una pregunta fallada torna a sortir tal qual.
+ *  - Si ja s'havia encertat una vegada (està consolidant-se), en lloc d'ella surt una
+ *    pregunta «germana» (mateix concepte o, si no n'hi ha, mateix subtema) per comprovar
+ *    que s'ha entès la idea i no només memoritzat la resposta.
+ *  - Si s'ha fallat dues vegades o més, s'hi afegeix també una germana de reforç.
+ */
+export function planErrors(questions: Question[], attempts: Attempt[], rng: Rng = Math.random): ErrorsPlan {
+  const hist = historyOf(attempts)
   const stats = statsByQuestion(attempts)
-  const failed = questions.filter((q) => stats.get(q.id)?.lastCorrect === false)
-  const prioritized = [...failed].sort((a, b) => stats.get(b.id)!.wrong - stats.get(a.id)!.wrong)
-  return shuffle(prioritized.slice(0, ERRORS_TEST_MAX), rng)
+  const pending = pendingErrors(questions, attempts).sort(
+    (a, b) => stats.get(b.id)!.wrong - stats.get(a.id)!.wrong || (stats.get(b.id)!.lastDate ?? '').localeCompare(stats.get(a.id)!.lastDate ?? ''),
+  )
+  const pendingIds = new Set(pending.map((q) => q.id))
+  const chosen = new Set<string>()
+  const out: Question[] = []
+  let repeated = 0
+  let siblings = 0
+
+  const sibling = (q: Question): Question | undefined => {
+    const free = (c: Question) => c.id !== q.id && !chosen.has(c.id) && !pendingIds.has(c.id)
+    const sameConcept = q.concept ? questions.filter((c) => c.concept === q.concept && free(c)) : []
+    const pool = sameConcept.length ? sameConcept : questions.filter((c) => c.subtopicId === q.subtopicId && free(c))
+    if (pool.length === 0) return undefined
+    // Primer les que mai s'han vist; després les que fa més temps que no surten.
+    const ranked = shuffle(pool, rng).sort((a, b) => (stats.get(a.id)?.lastDate ?? '').localeCompare(stats.get(b.id)?.lastDate ?? ''))
+    return ranked[0]
+  }
+
+  for (const q of pending) {
+    if (out.length >= ERRORS_TEST_MAX) break
+    const h = hist.get(q.id)!
+    const consolidating = h[h.length - 1] === true
+    const failures = h.filter((c) => !c).length
+    if (consolidating) {
+      const s = sibling(q)
+      if (s) {
+        chosen.add(s.id)
+        out.push(s)
+        siblings++
+        continue
+      }
+    }
+    chosen.add(q.id)
+    out.push(q)
+    repeated++
+    if (failures >= 2 && out.length < ERRORS_TEST_MAX) {
+      const s = sibling(q)
+      if (s) {
+        chosen.add(s.id)
+        out.push(s)
+        siblings++
+      }
+    }
+  }
+  return { questions: shuffle(out, rng), repeated, siblings }
+}
+
+/** Compatibilitat: només les preguntes del test d'errors. */
+export function buildErrorsTest(questions: Question[], attempts: Attempt[], rng: Rng = Math.random): Question[] {
+  return planErrors(questions, attempts, rng).questions
 }
 
 /** Test d'un tema concret: fins a 10 preguntes, prioritzant punts febles. */
@@ -185,4 +275,18 @@ export function mastery(questions: Question[], attempts: Attempt[]): { seen: num
     }
   }
   return { seen, mastered, total: questions.length }
+}
+
+/**
+ * Mode Extra difícil: 15 preguntes de les extra difícils de tot el curs,
+ * prioritzant les fallades i les no vistes. Si no n'hi ha prou, es completa
+ * amb preguntes difícils (dificultat 3) del banc normal.
+ */
+export function buildExtraTest(extra: Question[], base: Question[], attempts: Attempt[], rng: Rng = Math.random): Question[] {
+  const picked = pickWeighted(extra, EXTRA_TEST_SIZE, attempts, rng)
+  if (picked.length < EXTRA_TEST_SIZE) {
+    const hard = base.filter((q) => q.difficulty === 3)
+    picked.push(...pickWeighted(hard, EXTRA_TEST_SIZE - picked.length, attempts, rng))
+  }
+  return shuffle(picked, rng)
 }

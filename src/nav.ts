@@ -14,9 +14,13 @@ export type Screen =
   | { name: 'topic'; topicId: string }
   | { name: 'pretest'; test: PlannedTest }
   | { name: 'test'; test: PlannedTest }
-  | { name: 'summary'; sessionId: string }
+  | { name: 'summary'; sessionId: string; celebrate?: boolean }
   | { name: 'review'; sessionId: string; onlyErrors: boolean }
   | { name: 'history' }
   | { name: 'manage' }
+  | { name: 'trivial-pick' }
+  | { name: 'tutorial'; fromStart?: boolean }
+  | { name: 'stats' }
+  | { name: 'trivial'; topicId: string }
 
 export type Navigate = (s: Screen) => void
