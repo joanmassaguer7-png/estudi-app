@@ -320,13 +320,28 @@ export type ShareResult = 'enviada' | 'cancel·lada' | 'descarregada'
  * fitxer, per això s'envia com a text (.txt): la importació l'accepta igual.
  * Si el navegador no pot compartir fitxers, es descarrega comprimida.
  */
-export async function shareBackup(): Promise<ShareResult> {
+export const BACKUP_SUBJECT = 'Còpia de seguretat - App d’estudi'
+
+export async function shareBackup(email = ''): Promise<ShareResult> {
+  // Primer de tot (mentre el clic encara és «recent»), copiem el correu per enganxar-lo al camp «Per a».
+  if (email) {
+    try {
+      await navigator.clipboard.writeText(email)
+    } catch {
+      /* sense porta-retalls: s'haurà d'escriure a mà */
+    }
+  }
   const data = await buildBackup()
+  const day = new Date().toLocaleDateString('ca-ES')
   const name = `copia-estudi-${dateStamp()}.txt`
   const file = new File([JSON.stringify(data)], name, { type: 'text/plain' })
   if (navigator.canShare?.({ files: [file] })) {
     try {
-      await navigator.share({ files: [file], title: 'Còpia de seguretat' })
+      await navigator.share({
+        files: [file],
+        title: `${BACKUP_SUBJECT} (${day})`,
+        text: `Còpia de seguretat de l’app d’estudi del ${day}.\n\nPer recuperar-la: descarrega el fitxer adjunt i, a l’app, ves a Gestionar → Restaurar una còpia.\nNomés cal guardar l’últim correu amb aquest assumpte: pots esborrar els anteriors.`,
+      })
       return 'enviada'
     } catch (e) {
       if ((e as Error).name === 'AbortError') return 'cancel·lada'

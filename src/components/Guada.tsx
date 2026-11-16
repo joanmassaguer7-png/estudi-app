@@ -9,7 +9,7 @@ export function Guada({ mood = 'explica', talking = false, size = 120 }: { mood?
   const hair = '#2c1a12'
   const hairLight = '#4a2c1d'
   const ink = '#24170f'
-  const gold = '#e0b44c'
+  const silver = '#c3ccd2'
   return (
     <svg
       className={`guada mood-${mood} ${talking ? 'talking' : ''}`}
@@ -19,18 +19,23 @@ export function Guada({ mood = 'explica', talking = false, size = 120 }: { mood?
       role="img"
       aria-label="La Guada Vet"
     >
-      {/* Cabell llarg del darrere */}
-      <path d="M25 56C23 30 40 17 60 17s37 13 35 39c1 18 5 34 2 50-10 5-64 5-74 0-3-16 1-32 2-50z" fill={hair} />
+      {/* Cua de cavall i cabell del darrere */}
+      <g className="guada-tail">
+        <path d="M84 34c14 2 18 18 14 34-2 9-6 16-11 20 1-10-1-20-5-28-3-7-4-17 2-26z" fill={hair} />
+        <path d="M90 46c3 8 3 18 0 28" fill="none" stroke={hairLight} strokeWidth="1.6" strokeLinecap="round" />
+        <rect x="80" y="30" width="8" height="7" rx="3" fill="#f2a33a" transform="rotate(30 84 33)" />
+      </g>
+      <ellipse cx="60" cy="50" rx="29" ry="30" fill={hair} />
 
       {/* Cos amb el pijama verd */}
-      <path d="M14 120c2-22 18-32 46-32s44 10 46 32z" fill="#1f6b5c" />
-      <path d="M48 88l12 16 12-16z" fill={skin} />
-      <path d="M48 88l12 16 12-16" fill="none" stroke="#17544a" strokeWidth="2.5" strokeLinejoin="round" />
+      <path d="M22 120c2-20 15-30 38-30s36 10 38 30z" fill="#1f6b5c" />
+      <path d="M51 89l9 14 9-14z" fill={skin} />
+      <path d="M51 89l9 14 9-14" fill="none" stroke="#17544a" strokeWidth="2.5" strokeLinejoin="round" />
       {/* Fonendoscopi */}
-      <path d="M40 92c-6 10-4 20 4 24M80 92c6 10 4 20-4 24" fill="none" stroke="#7d8a92" strokeWidth="3" strokeLinecap="round" />
-      <circle cx="44" cy="116" r="4.5" fill="#b9c4be" stroke="#7d8a92" strokeWidth="2" />
+      <path d="M44 94c-5 9-3 17 3 22M76 94c5 9 3 17-3 22" fill="none" stroke="#7d8a92" strokeWidth="3" strokeLinecap="round" />
+      <circle cx="47" cy="116" r="4" fill="#b9c4be" stroke="#7d8a92" strokeWidth="2" />
       {/* Insígnia amb una petjada */}
-      <g transform="translate(78 100) scale(0.16)" fill="#f2a33a">
+      <g transform="translate(73 103) scale(0.14)" fill="#f2a33a">
         <ellipse cx="27" cy="50" rx="11" ry="14" />
         <ellipse cx="47" cy="27" rx="11" ry="15" />
         <ellipse cx="73" cy="27" rx="11" ry="15" />
@@ -38,23 +43,18 @@ export function Guada({ mood = 'explica', talking = false, size = 120 }: { mood?
         <path d="M60 55c13 0 29 18 29 31 0 10-7 15-15 15-6 0-9-3-14-3s-8 3-14 3c-8 0-15-5-15-15 0-13 16-31 29-31z" />
       </g>
 
-      {/* Cabells que cauen per davant de les espatlles */}
-      <path d="M31 52c-5 20-3 36-9 54 3 3 6 1 8 3 3-2 7 0 9-3-2-16-2-34 1-50z" fill={hair} />
-      <path d="M89 52c5 20 3 36 9 54-3 3-6 1-8 3-3-2-7 0-9-3 2-16 2-34-1-50z" fill={hair} />
-      <path d="M27 70c-1 12-2 24-4 34M93 70c1 12 2 24 4 34" fill="none" stroke={hairLight} strokeWidth="2" strokeLinecap="round" />
-
       {/* Cap */}
-      <rect x="52" y="74" width="16" height="14" rx="6" fill={skin} />
-      <circle cx="32" cy="57" r="5.5" fill={skin} />
-      <circle cx="88" cy="57" r="5.5" fill={skin} />
-      {/* Arracades de cèrcol */}
-      <circle cx="32" cy="65" r="3.4" fill="none" stroke={gold} strokeWidth="1.6" />
-      <circle cx="88" cy="65" r="3.4" fill="none" stroke={gold} strokeWidth="1.6" />
-      <ellipse cx="60" cy="54" rx="27" ry="29" fill={skin} />
+      <rect x="54" y="74" width="12" height="16" rx="5" fill={skin} />
+      <circle cx="36" cy="56" r="5" fill={skin} />
+      <circle cx="84" cy="56" r="5" fill={skin} />
+      {/* Arracades fines de plata */}
+      <circle cx="36" cy="63.5" r="2.6" fill="none" stroke={silver} strokeWidth="1" />
+      <circle cx="84" cy="63.5" r="2.6" fill="none" stroke={silver} strokeWidth="1" />
+      <ellipse cx="60" cy="54" rx="24" ry="28" fill={skin} />
       {/* Clenxa al mig i serrell obert a banda i banda */}
-      <path d="M59.4 24C45 23 34 31 32.5 47c1 9 3 15 1.5 22 4-9 5-17 10-24 6-7 12-12 15.4-19z" fill={hair} />
-      <path d="M60.6 24C75 23 86 31 87.5 47c-1 9-3 15-1.5 22-4-9-5-17-10-24-6-7-12-12-15.4-19z" fill={hair} />
-      <path d="M52 28c-8 4-13 10-16 19M68 28c8 4 13 10 16 19" fill="none" stroke={hairLight} strokeWidth="1.6" strokeLinecap="round" />
+      <path d="M59.4 25C47 24 37 31 35.6 46c.8 7 2.4 12 1.4 17 3.5-8 4.5-14 8.5-20 5-6 10.5-11 13.9-18z" fill={hair} />
+      <path d="M60.6 25C73 24 83 31 84.4 46c-.8 7-2.4 12-1.4 17-3.5-8-4.5-14-8.5-20-5-6-10.5-11-13.9-18z" fill={hair} />
+      <path d="M53 29c-7 4-11 9-14 17M67 29c7 4 11 9 14 17" fill="none" stroke={hairLight} strokeWidth="1.5" strokeLinecap="round" />
 
       {/* Celles */}
       <g className="guada-brows" stroke={hair} strokeWidth="3.4" strokeLinecap="round" fill="none">
@@ -78,11 +78,9 @@ export function Guada({ mood = 'explica', talking = false, size = 120 }: { mood?
           <circle cx={mood === 'pensa' ? 73 : 75.4} cy={mood === 'pensa' ? 50.5 : 51.5} r="1.5" fill="#fff" />
         </g>
       )}
-      <ellipse cx="39" cy="64" rx="5" ry="3" fill="#d9705f" opacity=".35" />
-      <ellipse cx="81" cy="64" rx="5" ry="3" fill="#d9705f" opacity=".35" />
+      <ellipse cx="42" cy="64" rx="4.5" ry="2.8" fill="#d9705f" opacity=".35" />
+      <ellipse cx="78" cy="64" rx="4.5" ry="2.8" fill="#d9705f" opacity=".35" />
       <path d="M58 60q2 3 4 0" fill="none" stroke="#9c6a47" strokeWidth="2" strokeLinecap="round" />
-      {/* Pírcing al nas */}
-      <circle cx="63.2" cy="60.2" r="1.1" fill={gold} />
 
       {/* Boca: tancada o oberta (quan parla) */}
       <g className="guada-mouth">
@@ -99,8 +97,8 @@ export function Guada({ mood = 'explica', talking = false, size = 120 }: { mood?
       {/* Mà que saluda */}
       {mood === 'hola' && (
         <g className="guada-wave">
-          <path d="M100 118l6-30" stroke="#1f6b5c" strokeWidth="12" strokeLinecap="round" />
-          <circle cx="107" cy="84" r="7" fill={skin} />
+          <path d="M94 118l8-30" stroke="#1f6b5c" strokeWidth="10" strokeLinecap="round" />
+          <circle cx="103" cy="84" r="6" fill={skin} />
         </g>
       )}
     </svg>
