@@ -124,7 +124,11 @@ export function DemoTest({ stage, onDone }: DemoProps) {
     if (stage === 1 && s.answers[0] !== null && s.index >= 1) onDone()
     // Tornar enrere: ja s'havia avançat i ara s'és a la primera.
     if (stage === 2 && s.maxVisited >= 1 && s.index === 0) onDone()
+    // Si ja s'han vist totes les preguntes, no queda cap interrogant per tocar: es dona per fet.
+    if (stage === 3 && s.maxVisited >= DEMO_QUESTIONS.length - 1) onDone()
   }, [stage, s, onDone])
+  // El test només es pot acabar a l'última etapa; abans, la Guada encara ha d'ensenyar coses.
+  const finishAllowed = canFinish(s) && stage >= 4
 
   const q = DEMO_QUESTIONS[s.index]
   if (finished) {
@@ -190,8 +194,8 @@ export function DemoTest({ stage, onDone }: DemoProps) {
         })}
       </div>
       <button
-        className={`primary-btn small-btn wide-demo ${stage === 4 && canFinish(s) ? 'pulse-target' : ''}`}
-        disabled={!canFinish(s)}
+        className={`primary-btn small-btn wide-demo ${finishAllowed ? 'pulse-target' : ''}`}
+        disabled={!finishAllowed}
         onClick={() => (unansweredCount(s) > 0 ? setWarn(true) : (setFinished(true), stage === 4 && onDone()))}
       >
         Finalitzar test
