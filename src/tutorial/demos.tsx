@@ -129,6 +129,10 @@ export function DemoTest({ stage, onDone }: DemoProps) {
   }, [stage, s, onDone])
   // El test només es pot acabar a l'última etapa; abans, la Guada encara ha d'ensenyar coses.
   const finishAllowed = canFinish(s) && stage >= 4
+  // El test avança al ritme de la Guada: abans de l'etapa 1 no es pot respondre, i fins a
+  // l'etapa 4 només es pot arribar a la pregunta 2 (així queden interrogants per a l'etapa 3).
+  const canAnswer = stage >= 1
+  const lastAllowed = stage >= 4 ? DEMO_QUESTIONS.length - 1 : stage >= 1 ? 1 : 0
 
   const q = DEMO_QUESTIONS[s.index]
   if (finished) {
@@ -153,7 +157,7 @@ export function DemoTest({ stage, onDone }: DemoProps) {
       </p>
       <div className="demo-options">
         {q.o.map((o, i) => (
-          <button key={i} className={`option small ${s.answers[s.index] === i ? 'selected' : ''}`} onClick={() => dispatch({ type: 'answer', option: i })}>
+          <button key={i} className={`option small ${s.answers[s.index] === i ? 'selected' : ''}`} disabled={!canAnswer} onClick={() => dispatch({ type: 'answer', option: i })}>
             <span className="option-letter">{'ABC'[i]}</span>
             <span className="option-text">{o}</span>
           </button>
@@ -165,7 +169,7 @@ export function DemoTest({ stage, onDone }: DemoProps) {
         </button>
         <button
           className={`secondary-btn small-btn ${stage === 1 && s.answers[0] !== null ? 'pulse-target' : ''}`}
-          disabled={s.index === DEMO_QUESTIONS.length - 1}
+          disabled={s.index >= lastAllowed}
           onClick={() => dispatch({ type: 'next' })}
         >
           Següent

@@ -979,3 +979,4 @@ h2 + .plain-list, h2 + .subtopic-list { margin-top: 12px; }
 .mastery-sub .mastery-track { height: 6px; }
 .mastery-sub .mastery-track span { background: var(--heat-3); }
 .backup-stack { margin-top: 14px; }
+.demo .option:disabled { cursor: default; opacity: 0.6; }
