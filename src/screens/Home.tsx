@@ -23,6 +23,8 @@ import { CHAPTERS } from '../tutorial/chapters'
 import type { Navigate } from '../nav'
 import { AlertIcon, BoltIcon, ChartIcon, CrownIcon, GamepadIcon, GearIcon, MoonIcon, PawIcon, RepeatIcon, SearchIcon, SunIcon } from '../components/icons'
 import { setTheme, useTheme } from '../theme'
+import { BirthdayParty } from '../components/BirthdayParty'
+import { BIRTHDAY_SEEN_KEY, isBirthday } from '../data/birthday'
 import { ProgressBar, useToast } from '../components/ui'
 
 export function Home({ data, go }: { data: CourseData; go: Navigate }) {
@@ -31,6 +33,7 @@ export function Home({ data, go }: { data: CourseData; go: Navigate }) {
   const toast = useToast()
   const [search, setSearch] = useState('')
   const [popped, setPopped] = useState<string | null>(null)
+  const [partyAgain, setPartyAgain] = useState(false)
 
   const visibleTopics = topics.filter((t) =>
     `${t.number} ${t.title}`.toLowerCase().includes(search.trim().toLowerCase()),
@@ -49,6 +52,9 @@ export function Home({ data, go }: { data: CourseData; go: Navigate }) {
   const mascot = mascotFor()
   const tutorial = useLiveQuery(() => getSetting<TutorialState>(TUTORIAL_KEY, { done: [] }), [])
   const showTutorial = tutorial && !tutorial.dismissed && tutorial.done.length < CHAPTERS.length
+  const birthdayToday = isBirthday(settings?.birthday)
+  const thisYear = new Date().getFullYear()
+  const showParty = !!settings && birthdayToday && (partyAgain || settings.birthdaySeen !== thisYear)
   const backupDue = settings ? backupDaysDue(settings.lastBackup, settings.backupSnooze, sessions.map((x) => x.finishedAt)) : null
 
   async function toggleCrown(topicId: string) {
@@ -149,6 +155,26 @@ export function Home({ data, go }: { data: CourseData; go: Navigate }) {
           </button>
         </div>
       </header>
+
+      {showParty && (
+        <BirthdayParty
+          name={settings?.name ?? ''}
+          onClose={() => {
+            setPartyAgain(false)
+            void setSetting(BIRTHDAY_SEEN_KEY, thisYear)
+          }}
+        />
+      )}
+
+      {birthdayToday && (
+        <button className="birthday-banner" onClick={() => setPartyAgain(true)}>
+          <PawIcon size={20} />
+          <span>
+            <strong>Per molts anys, {settings?.name}!</strong>
+            <small>Torna a veure la festa</small>
+          </span>
+        </button>
+      )}
 
       {showTutorial && (
         <div className="tut-banner">

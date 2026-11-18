@@ -39,11 +39,12 @@ export function Tutorial({ go, startAt }: { go: Navigate; startAt?: string }) {
         chapter={CHAPTERS[idx]}
         number={idx + 1}
         onExit={() => setPlaying(null)}
-        onFinish={async () => {
-          await markDone(playing)
+        onFinish={() => {
+          // Primer es canvia de capítol i després es desa el progrés: si desar falla o va lent
+          // (passava en algun mòbil), el botó «Següent capítol» no es queda encallat.
           const next = CHAPTERS[idx + 1]
-          setPlaying(null)
-          if (next) setTimeout(() => setPlaying(next.id), 0)
+          setPlaying(next ? next.id : null)
+          markDone(playing).catch((e) => console.error('No s’ha pogut desar el progrés del tutorial', e))
         }}
       />
     )
@@ -139,7 +140,13 @@ function ChapterPlayer({ chapter, number, name, onExit, onFinish }: { chapter: C
             <button className="primary-btn" onClick={onFinish}>
               {number < CHAPTERS.length ? 'Següent capítol' : 'Veure el diploma'}
             </button>
-            <button className="link-btn" onClick={async () => (await markDone(chapter.id), onExit())}>
+            <button
+              className="link-btn"
+              onClick={() => {
+                onExit()
+                markDone(chapter.id).catch((e) => console.error('No s’ha pogut desar el progrés del tutorial', e))
+              }}
+            >
               Tornar al mapa
             </button>
           </div>

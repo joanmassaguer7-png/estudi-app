@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react'
-import { setSetting } from '../data/db'
-import { PROFILE_KEY } from '../data/hooks'
 import { Guada } from '../components/Guada'
+import { BirthdayPicker } from '../components/BirthdayPicker'
+import { saveProfile, validBirthday, type Birthday } from '../data/birthday'
 
 /**
  * Primera pantalla de l'app: la Guada es presenta i demana el nom.
@@ -10,6 +10,7 @@ import { Guada } from '../components/Guada'
 export function NameSetup({ initial = '', onSaved }: { initial?: string; onSaved?: () => void }) {
   const [name, setName] = useState(initial)
   const [saved, setSaved] = useState<string | null>(null)
+  const [birthday, setBirthday] = useState<Partial<Birthday>>({})
   const clean = name.trim().replace(/\s+/g, ' ')
 
   async function submit(e: FormEvent) {
@@ -19,7 +20,7 @@ export function NameSetup({ initial = '', onSaved }: { initial?: string; onSaved
     // Un moment perquè la Guada saludi abans de continuar.
     const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
     window.setTimeout(async () => {
-      await setSetting(PROFILE_KEY, { name: clean })
+      await saveProfile({ name: clean, ...(validBirthday(birthday) ? { birthday } : {}) })
       onSaved?.()
     }, reduce ? 200 : 1600)
   }
@@ -55,10 +56,14 @@ export function NameSetup({ initial = '', onSaved }: { initial?: string; onSaved
             autoFocus
             placeholder="Escriu el teu nom"
           />
+          <label htmlFor="aniv-dia">
+            Quan és el teu aniversari? <span className="muted">(opcional)</span>
+          </label>
+          <BirthdayPicker value={birthday} onChange={setBirthday} />
           <button className="primary-btn" type="submit" disabled={!clean}>
             Som-hi!
           </button>
-          <p className="muted small">El nom només es guarda en aquest mòbil. No cal cap registre ni contrasenya.</p>
+          <p className="muted small">El nom i l’aniversari només es guarden en aquest mòbil. No cal cap registre ni contrasenya.</p>
         </form>
       )}
     </div>

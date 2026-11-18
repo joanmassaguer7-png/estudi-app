@@ -1,3 +1,4 @@
+import type { Birthday } from './birthday'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { crownsKey, db } from './db'
 import { DEFAULT_REMINDER, REMINDER_KEY, type ReminderSettings } from './reminder'
@@ -33,16 +34,20 @@ export type CourseData = NonNullable<ReturnType<typeof useCourseData>>
 /** Configuració general que fan servir diverses pantalles. */
 export function useAppSettings() {
   return useLiveQuery(async () => {
-    const [reminder, lastBackup, backupSnooze, profile, backupEmail] = await Promise.all([
+    const [reminder, lastBackup, backupSnooze, profile, backupEmail, birthdaySeen] = await Promise.all([
       db.settings.get(REMINDER_KEY),
       db.settings.get(LAST_BACKUP_KEY),
       db.settings.get(BACKUP_SNOOZE_KEY),
       db.settings.get(PROFILE_KEY),
       db.settings.get(BACKUP_EMAIL_KEY),
+      db.settings.get('aniversari-vist'),
     ])
     return {
       /** Nom de la persona que fa servir l'app (es demana el primer cop). */
       name: ((profile?.value as { name?: string } | undefined)?.name ?? '').trim(),
+      /** Aniversari (dia i mes), si l'ha posat. */
+      birthday: ((profile?.value as { birthday?: Birthday } | undefined)?.birthday ?? null) as Birthday | null,
+      birthdaySeen: (birthdaySeen?.value as number | undefined) ?? null,
       reminder: { ...DEFAULT_REMINDER, ...((reminder?.value as Partial<ReminderSettings>) ?? {}) },
       lastBackup: (lastBackup?.value as string | undefined) ?? null,
       backupSnooze: (backupSnooze?.value as string | undefined) ?? null,
