@@ -3,8 +3,11 @@ import { crownsKey, setSetting } from '../data/db'
 import type { CourseData } from '../data/hooks'
 import {
   buildExtraTest,
+  newErrors,
+  shuffle,
   pendingErrors,
   planErrors,
+  weeklyErrors,
   EXTRA_TEST_SIZE,
   buildTotalReview,
   MAX_CROWNS,
@@ -50,6 +53,8 @@ export function Home({ data, go }: { data: CourseData; go: Navigate }) {
     `${t.number} ${t.title}`.toLowerCase().includes(search.trim().toLowerCase()),
   )
   const errorsAvailable = pendingErrors(questions, attempts).length
+  const errorsNew = newErrors(questions, attempts, sessions).length
+  const weekly = weeklyErrors(questions, attempts, sessions)
   const totalCount = topics.reduce(
     (sum, t) => sum + Math.min(TOTAL_PER_TOPIC, questions.filter((q) => q.topicId === t.id).length),
     0,
@@ -124,17 +129,31 @@ export function Home({ data, go }: { data: CourseData; go: Navigate }) {
   function startErrors() {
     const plan = planErrors(questions, attempts)
     if (plan.questions.length === 0) return toast('No tens cap pregunta fallada pendent.')
-    const parts = [
-      plan.repeated ? `${plan.repeated} ${plan.repeated === 1 ? 'pregunta que vas fallar' : 'preguntes que vas fallar'}` : '',
-      plan.siblings ? `${plan.siblings} ${plan.siblings === 1 ? 'pregunta nova' : 'preguntes noves'} del mateix tema per comprovar que ho has entès` : '',
-    ].filter(Boolean)
     go({
       name: 'pretest',
       test: {
         mode: 'errors',
         title: 'Test d’errors',
-        description: `${parts.join(' i ')}. Una pregunta fallada surt de la llista quan l’encertes dues vegades seguides.`.replace(/^./, (c) => c.toUpperCase()),
+        description:
+          (plan.total > plan.questions.length
+            ? `Les ${plan.questions.length} preguntes més fallades de les ${plan.total} que tens pendents.`
+            : `Les ${plan.total === 1 ? 'pregunta que tens' : `${plan.total} preguntes que tens`} pendent${plan.total === 1 ? '' : 's'} de fer bé.`) +
+          ' Cada pregunta surt de la llista quan l’encertes.',
         questions: plan.questions,
+      },
+    })
+  }
+
+  function startWeekly() {
+    if (weekly.questions.length === 0) return
+    const from = weekly.from.toLocaleDateString('ca-ES', { day: 'numeric', month: 'long' })
+    go({
+      name: 'pretest',
+      test: {
+        mode: 'errors-setmanal',
+        title: 'Test setmanal d’errors',
+        description: `Totes les preguntes que vas fallar la setmana del ${from} i que encara no has fet bé. Les que tornis a fallar tornaran a sortir al test d’errors i al setmanal fins que les encertis.`,
+        questions: shuffle(weekly.questions),
       },
     })
   }
@@ -241,6 +260,23 @@ export function Home({ data, go }: { data: CourseData; go: Navigate }) {
         </span>
       </button>
 
+      {weekly.questions.length > 0 && (
+        <button className={`weekly-card ${weekly.doneThisWeek ? 'done' : ''}`} onClick={startWeekly}>
+          <span className="weekly-icon" aria-hidden="true">
+            <AlertIcon size={22} />
+          </span>
+          <span>
+            <strong>{weekly.doneThisWeek ? 'Test setmanal d’errors' : 'Nou test setmanal d’errors'}</strong>
+            <small>
+              {weekly.doneThisWeek
+                ? `Encara ${weekly.questions.length === 1 ? 'te’n queda 1' : `te’n queden ${weekly.questions.length}`} de la setmana passada per fer bé`
+                : `${weekly.questions.length} ${weekly.questions.length === 1 ? 'errada' : 'errades'} de la setmana passada`}
+            </small>
+          </span>
+          {!weekly.doneThisWeek && <span className="mode-badge">{weekly.questions.length}</span>}
+        </button>
+      )}
+
       {backupDue !== null && (
         <div className="backup-banner" role="status">
           <p>
@@ -272,7 +308,7 @@ export function Home({ data, go }: { data: CourseData; go: Navigate }) {
           <span className="mode-sub">
             {errorsAvailable === 0 ? 'Cap pendent' : `${errorsAvailable} per repassar`}
           </span>
-          {errorsAvailable > 0 && <span className="mode-badge">{errorsAvailable}</span>}
+          {errorsNew > 0 && <span className="mode-badge">{errorsNew}</span>}
         </button>
         <button className="mode-tile" onClick={() => go({ name: 'trivial-pick' })}>
           <GamepadIcon size={28} />

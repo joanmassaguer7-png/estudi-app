@@ -142,7 +142,7 @@ export default function App() {
       case 'exams':
         return <Exams data={data!} go={go} />
       case 'exam':
-        return <ExamDetail examId={screen.examId} data={data!} go={go} />
+        return <ExamDetail key={screen.examId} examId={screen.examId} celebrate={screen.celebrate} data={data!} go={go} />
       case 'exam-edit':
         return <ExamEdit key={screen.examId ?? 'nou'} examId={screen.examId} data={data!} go={go} />
       case 'trivial-pick':

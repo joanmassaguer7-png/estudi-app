@@ -22,7 +22,7 @@ export type Screen =
   | { name: 'tutorial'; fromStart?: boolean }
   | { name: 'stats' }
   | { name: 'exams' }
-  | { name: 'exam'; examId: string }
+  | { name: 'exam'; examId: string; celebrate?: boolean }
   | { name: 'exam-edit'; examId?: string }
   | { name: 'trivial'; topicId: string }
 

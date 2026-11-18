@@ -361,11 +361,14 @@ export async function shareBackup(email = ''): Promise<ShareResult> {
  * Comparteix un fitxer de text amb el menú del mòbil (correu, WhatsApp, Drive…) o, si el
  * navegador no pot, el descarrega.
  */
-export async function shareTextFile(text: string, filename: string, title: string, body: string): Promise<ShareResult> {
+export async function shareTextFile(text: string, filename: string, title: string, body: string, extra: File[] = []): Promise<ShareResult> {
   const file = new File([text], filename, { type: 'text/plain' })
-  if (navigator.canShare?.({ files: [file] })) {
+  const files = [file, ...extra]
+  // Si el navegador no accepta les fotos, almenys s'envia el text.
+  const shareable = navigator.canShare?.({ files }) ? files : navigator.canShare?.({ files: [file] }) ? [file] : null
+  if (shareable) {
     try {
-      await navigator.share({ files: [file], title, text: body })
+      await navigator.share({ files: shareable, title, text: body })
       return 'enviada'
     } catch (e) {
       if ((e as Error).name === 'AbortError') return 'cancel·lada'

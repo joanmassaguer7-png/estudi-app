@@ -2,7 +2,7 @@
 // Són funcions "pures": reben dades i retornen un resultat, sense tocar la base
 // de dades ni la pantalla. Així es poden provar fàcilment.
 
-import type { Attempt, Question, Topic } from '../data/types'
+import type { Attempt, Question, TestSession, Topic } from '../data/types'
 
 export type Rng = () => number
 
@@ -154,101 +154,100 @@ export function buildTotalReview(topics: Topic[], questions: Question[], rng: Rn
   return shuffle(picked, rng)
 }
 
-/** Intents d'una pregunta, del més antic al més recent. */
-function historyOf(attempts: Attempt[]): Map<string, boolean[]> {
-  const map = new Map<string, boolean[]>()
-  for (const a of [...attempts].sort((x, y) => x.date.localeCompare(y.date))) {
-    const h = map.get(a.questionId) ?? []
-    h.push(a.correct)
-    map.set(a.questionId, h)
+/** Últim intent de cada pregunta. */
+function lastAttempts(attempts: Attempt[]): Map<string, Attempt> {
+  const map = new Map<string, Attempt>()
+  for (const a of attempts) {
+    const prev = map.get(a.questionId)
+    if (!prev || a.date >= prev.date) map.set(a.questionId, a)
   }
   return map
 }
 
 /**
- * Preguntes pendents de consolidar: s'han fallat alguna vegada i encara no
- * s'han encertat dues vegades seguides des de l'última fallada.
+ * Registre d'errades: preguntes l'últim intent de les quals va ser incorrecte (o sense resposta).
+ * Una pregunta surt del registre quan es respon bé, faci's al test que es faci.
  */
 export function pendingErrors(questions: Question[], attempts: Attempt[]): Question[] {
-  const hist = historyOf(attempts)
+  const last = lastAttempts(attempts)
   return questions.filter((q) => {
-    const h = hist.get(q.id)
-    if (!h || !h.includes(false)) return false
-    const lastWrong = h.lastIndexOf(false)
-    return h.length - 1 - lastWrong < 2
+    const a = last.get(q.id)
+    return !!a && !a.correct
   })
+}
+
+/** Data (ISO) de l'últim test d'errors normal acabat, o '' si no se n'ha fet cap. */
+export function lastErrorsTestDate(sessions: TestSession[]): string {
+  return sessions.filter((s) => s.mode === 'errors').reduce((m, s) => (s.finishedAt > m ? s.finishedAt : m), '')
+}
+
+/**
+ * Errades noves des de l'últim test d'errors: són les que fan sortir l'avís (el número vermell).
+ * Les que es tornen a fallar dins del mateix test d'errors no tornen a encendre l'avís,
+ * però continuen al registre i surten al proper test.
+ */
+export function newErrors(questions: Question[], attempts: Attempt[], sessions: TestSession[]): Question[] {
+  const since = lastErrorsTestDate(sessions)
+  const last = lastAttempts(attempts)
+  return pendingErrors(questions, attempts).filter((q) => (last.get(q.id)?.date ?? '') > since)
 }
 
 export interface ErrorsPlan {
   questions: Question[]
-  /** Preguntes fallades que tornen a sortir. */
-  repeated: number
-  /** Preguntes noves del mateix concepte o subtema, per comprovar que s'ha entès. */
-  siblings: number
+  /** Quantes errades hi ha en total al registre (el test en mostra com a màxim ERRORS_TEST_MAX). */
+  total: number
 }
 
-/**
- * Test d'errors intel·ligent:
- *  - Una pregunta fallada torna a sortir tal qual.
- *  - Si ja s'havia encertat una vegada (està consolidant-se), en lloc d'ella surt una
- *    pregunta «germana» (mateix concepte o, si no n'hi ha, mateix subtema) per comprovar
- *    que s'ha entès la idea i no només memoritzat la resposta.
- *  - Si s'ha fallat dues vegades o més, s'hi afegeix també una germana de reforç.
- */
+/** Test d'errors: les preguntes del registre d'errades, primer les més fallades i les més recents. */
 export function planErrors(questions: Question[], attempts: Attempt[], rng: Rng = Math.random): ErrorsPlan {
-  const hist = historyOf(attempts)
   const stats = statsByQuestion(attempts)
   const pending = pendingErrors(questions, attempts).sort(
     (a, b) => stats.get(b.id)!.wrong - stats.get(a.id)!.wrong || (stats.get(b.id)!.lastDate ?? '').localeCompare(stats.get(a.id)!.lastDate ?? ''),
   )
-  const pendingIds = new Set(pending.map((q) => q.id))
-  const chosen = new Set<string>()
-  const out: Question[] = []
-  let repeated = 0
-  let siblings = 0
-
-  const sibling = (q: Question): Question | undefined => {
-    const free = (c: Question) => c.id !== q.id && !chosen.has(c.id) && !pendingIds.has(c.id)
-    const sameConcept = q.concept ? questions.filter((c) => c.concept === q.concept && free(c)) : []
-    const pool = sameConcept.length ? sameConcept : questions.filter((c) => c.subtopicId === q.subtopicId && free(c))
-    if (pool.length === 0) return undefined
-    // Primer les que mai s'han vist; després les que fa més temps que no surten.
-    const ranked = shuffle(pool, rng).sort((a, b) => (stats.get(a.id)?.lastDate ?? '').localeCompare(stats.get(b.id)?.lastDate ?? ''))
-    return ranked[0]
-  }
-
-  for (const q of pending) {
-    if (out.length >= ERRORS_TEST_MAX) break
-    const h = hist.get(q.id)!
-    const consolidating = h[h.length - 1] === true
-    const failures = h.filter((c) => !c).length
-    if (consolidating) {
-      const s = sibling(q)
-      if (s) {
-        chosen.add(s.id)
-        out.push(s)
-        siblings++
-        continue
-      }
-    }
-    chosen.add(q.id)
-    out.push(q)
-    repeated++
-    if (failures >= 2 && out.length < ERRORS_TEST_MAX) {
-      const s = sibling(q)
-      if (s) {
-        chosen.add(s.id)
-        out.push(s)
-        siblings++
-      }
-    }
-  }
-  return { questions: shuffle(out, rng), repeated, siblings }
+  return { questions: shuffle(pending.slice(0, ERRORS_TEST_MAX), rng), total: pending.length }
 }
 
 /** Compatibilitat: només les preguntes del test d'errors. */
 export function buildErrorsTest(questions: Question[], attempts: Attempt[], rng: Rng = Math.random): Question[] {
   return planErrors(questions, attempts, rng).questions
+}
+
+// ---------- Test setmanal d'errors ----------
+
+/** Dilluns a les 00:00 de la setmana de la data donada (hora local). */
+export function weekStart(date = new Date()): Date {
+  const d = new Date(date.getFullYear(), date.getMonth(), date.getDate())
+  d.setDate(d.getDate() - ((d.getDay() + 6) % 7))
+  return d
+}
+
+export interface WeeklyErrors {
+  /** Preguntes fallades la setmana passada que encara no s'han fet bé. */
+  questions: Question[]
+  /** Si ja s'ha fet el test setmanal aquesta setmana. */
+  doneThisWeek: boolean
+  /** Dilluns de la setmana passada (per als textos). */
+  from: Date
+}
+
+/**
+ * Cada dilluns s'habilita un test amb totes les errades de la setmana anterior (de dilluns a diumenge).
+ * Durant la setmana es pot repetir: hi continuen sortint les que encara no s'han fet bé.
+ * Les errades d'aquest test van al registre normal, com qualsevol altra.
+ */
+export function weeklyErrors(questions: Question[], attempts: Attempt[], sessions: TestSession[], now = new Date()): WeeklyErrors {
+  const thisWeek = weekStart(now)
+  const from = new Date(thisWeek)
+  from.setDate(from.getDate() - 7)
+  const a = from.toISOString()
+  const b = thisWeek.toISOString()
+  const failedLastWeek = new Set(attempts.filter((x) => !x.correct && x.date >= a && x.date < b).map((x) => x.questionId))
+  const pending = new Set(pendingErrors(questions, attempts).map((q) => q.id))
+  return {
+    questions: questions.filter((q) => failedLastWeek.has(q.id) && pending.has(q.id)),
+    doneThisWeek: sessions.some((s) => s.mode === 'errors-setmanal' && s.finishedAt >= b),
+    from,
+  }
 }
 
 /** Test d'un tema concret: fins a 10 preguntes, prioritzant punts febles. */

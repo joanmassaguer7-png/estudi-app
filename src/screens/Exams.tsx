@@ -5,7 +5,8 @@ import { db } from '../data/db'
 import type { Exam } from '../data/types'
 import { shareTextFile } from '../data/package'
 import { ScreenHeader, useToast } from '../components/ui'
-import { compareExam, examsReport, formatExamDate, formatScore, practicableQuestions } from '../logic/exams'
+import { compareExam, examsReport, formatExamDate, formatScore, photoName, practicableQuestions } from '../logic/exams'
+import { dataUrlToFile } from '../data/photos'
 import { shuffle } from '../logic/select'
 
 const pct = (x: number) => `${Math.round(x * 100)} %`
@@ -18,6 +19,7 @@ export function Exams({ data, go }: { data: CourseData; go: Navigate }) {
   const sorted = [...exams].sort((a, b) => b.date.localeCompare(a.date))
   const practice = practicableQuestions(exams)
   const totalQuestions = exams.reduce((s, e) => s + e.questions.length, 0)
+  const totalPhotos = exams.reduce((s, e) => s + (e.photos?.length ?? 0), 0)
 
   function startPractice() {
     go({
@@ -33,13 +35,15 @@ export function Exams({ data, go }: { data: CourseData; go: Navigate }) {
 
   async function sendToClaude() {
     const text = examsReport(exams!, data.topics, data.attempts, data.course.title)
+    const photos = exams!.flatMap((e) => (e.photos ?? []).map((ph, i) => dataUrlToFile(ph.dataUrl, photoName(e, i))))
     const r = await shareTextFile(
       text,
       `examens-${new Date().toISOString().slice(0, 10)}.txt`,
       'Preguntes d’exàmens per a Claude',
-      'Preguntes dels exàmens reals, per ajustar les preguntes de l’app.',
+      'Preguntes, notes i fotos dels exàmens reals, per ajustar les preguntes de l’app.',
+      photos,
     )
-    if (r === 'descarregada') toast('Fitxer descarregat. Passa’l a Claude a la conversa de l’app.')
+    if (r === 'descarregada') toast('S’ha descarregat el text (sense fotos). Passa’l a Claude a la conversa de l’app.')
   }
 
   return (
@@ -67,12 +71,13 @@ export function Exams({ data, go }: { data: CourseData; go: Navigate }) {
         Afegir un examen
       </button>
 
-      {totalQuestions > 0 && (
+      {(totalQuestions > 0 || totalPhotos > 0) && (
         <section className="card">
           <h2>Preguntes dels exàmens</h2>
           <p className="muted small">
             {totalQuestions} {totalQuestions === 1 ? 'pregunta apuntada' : 'preguntes apuntades'}
-            {practice.length < totalQuestions && `, ${practice.length} amb opcions i resposta correcta per practicar`}.
+            {practice.length < totalQuestions && `, ${practice.length} amb opcions i resposta correcta per practicar`}
+            {totalPhotos > 0 && ` i ${totalPhotos} ${totalPhotos === 1 ? 'foto' : 'fotos'}`}.
           </p>
           <div className="button-stack">
             <button className="secondary-btn" disabled={practice.length === 0} onClick={startPractice}>
@@ -83,8 +88,8 @@ export function Exams({ data, go }: { data: CourseData; go: Navigate }) {
             </button>
           </div>
           <p className="muted small">
-            Envia el fitxer a Claude perquè ajusti les preguntes de l’app a l’estil i la dificultat dels exàmens reals,
-            i perquè les afegeixi al banc de preguntes.
+            Envia-ho a Claude (amb les fotos) perquè ajusti les preguntes de l’app a l’estil i la dificultat dels
+            exàmens reals, i perquè les afegeixi al banc de preguntes.
           </p>
         </section>
       )}
@@ -109,6 +114,7 @@ function ExamCard({ exam, data, onOpen }: { exam: Exam; data: CourseData; onOpen
           {formatExamDate(exam.date)}
           {nums && ` · ${exam.topicIds.length === 1 ? 'Tema' : 'Temes'} ${nums}`}
           {exam.questions.length > 0 && ` · ${exam.questions.length} preguntes`}
+          {(exam.photos?.length ?? 0) > 0 && ` · ${exam.photos!.length} fotos`}
         </small>
         <CompareBars examPct={c.examPct} testPct={c.testPct} />
         <DiffLine diff={c.diff} testPct={c.testPct} examPct={c.examPct} />

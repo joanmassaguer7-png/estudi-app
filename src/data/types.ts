@@ -52,7 +52,7 @@ export interface Question {
   generation?: { source: string; createdAt: string; model?: string }
 }
 
-export type StudyMode = 'tema' | 'repas-diari' | 'repas-total' | 'errors' | 'trivial' | 'extra' | 'examens'
+export type StudyMode = 'tema' | 'repas-diari' | 'repas-total' | 'errors' | 'trivial' | 'extra' | 'examens' | 'errors-setmanal'
 
 /** Un intent = una resposta (o no-resposta) a una pregunta dins d'un test. */
 export interface Attempt {
@@ -133,6 +133,15 @@ export interface Exam {
   maxScore: number
   notes?: string
   questions: ExamQuestion[]
+  /** Fotos de l'examen (enunciats, correcció…), comprimides. */
+  photos?: ExamPhoto[]
   createdAt: string
   updatedAt: string
+}
+
+/** Foto d'un examen, guardada com a JPEG comprimit (data URL) perquè viatgi amb les còpies. */
+export interface ExamPhoto {
+  id: string
+  dataUrl: string
+  addedAt: string
 }

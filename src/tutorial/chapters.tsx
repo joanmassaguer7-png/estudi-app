@@ -117,7 +117,7 @@ export const CHAPTERS: Chapter[] = [
     steps: [
       { mood: 'explica', say: 'A més del Repàs diari, tens quatre maneres més d’estudiar. Cadascuna serveix per a un moment diferent.' },
       { mood: 'explica', stage: 1, task: 'Toca els quatre modes', say: 'Toca’ls tots quatre per veure per a què serveixen.' },
-      { mood: 'content', stage: 1, say: 'El meu consell: Repàs diari cada dia, Errors un cop per setmana i Extra difícil quan vulguis posar-te a prova.' },
+      { mood: 'content', stage: 1, say: 'El meu consell: Repàs diari cada dia, el test setmanal d’errors cada dilluns i Extra difícil quan vulguis posar-te a prova.' },
     ],
   },
   {

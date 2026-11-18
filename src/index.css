@@ -1143,3 +1143,47 @@ h2 + .plain-list, h2 + .subtopic-list { margin-top: 12px; }
 .exam-edit .field .score-row input:not([type='radio']) { width: 90px; flex: 0 0 90px; }
 .exam-edit .card > .field + .field { margin-top: 14px; }
 .exam-q-form .field + .field { margin-top: 10px; }
+
+/* ---------- Test setmanal d'errors ---------- */
+.weekly-card {
+  position: relative; display: flex; align-items: center; gap: 12px; width: 100%; margin: 12px 0 0; padding: 14px 16px;
+  text-align: left; border: 2px solid var(--red); border-radius: var(--r-md); background: var(--red-soft); color: var(--ink);
+}
+.weekly-card span { display: grid; gap: 2px; min-width: 0; }
+.weekly-card small { color: var(--muted); font-weight: 600; }
+.weekly-icon { flex: none; display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; background: var(--red); color: #fff; }
+.weekly-card.done { border-color: var(--line); background: var(--surface); }
+.weekly-card.done .weekly-icon { background: var(--heat-0); color: var(--red-ink); }
+.weekly-card .mode-badge { position: static; margin-left: auto; flex: none; }
+
+/* ---------- Felicitació d'examen ---------- */
+.exam-confetti { position: fixed; inset: 0; z-index: 150; pointer-events: none; }
+.exam-party-group { display: flex; flex-wrap: wrap; justify-content: center; gap: 14px 10px; padding: 14px 4px 6px; border-radius: var(--r-md); }
+.exam-party.all .exam-party-group { gap: 12px 6px; max-width: 320px; margin: 0 auto; }
+.exam-party-group.asking { animation: ask 0.5s ease-in-out 2; }
+.exam-party-mascot { position: relative; display: block; animation: mascot-hop 0.5s cubic-bezier(.3, 1.6, .5, 1) both, party-bounce 1.6s ease-in-out 1s infinite; }
+.exam-party-mascot img { display: block; border-radius: 50%; background: #fff; }
+.exam-party-mascot .party-hat { top: -10px; }
+.exam-party.all .exam-party-mascot .party-hat { width: 16px; height: 20px; top: -8px; }
+.exam-party-heart { position: absolute; right: -2px; top: -4px; color: var(--red); font-size: 1.2rem; animation: heart-up 1.4s ease-out forwards; }
+.treat-btn.paw .paw-biscuit { width: 92px; height: auto; }
+@keyframes heart-up { from { transform: translateY(6px) scale(0.4); opacity: 0; } 30% { opacity: 1; } to { transform: translateY(-26px) scale(1.1); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .exam-party-mascot, .exam-party-group.asking { animation: none; }
+  .exam-confetti { display: none; }
+}
+
+/* ---------- Fotos d'examen ---------- */
+.photo-grid { list-style: none; padding: 0; margin: 10px 0 12px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.photo-grid li { position: relative; aspect-ratio: 3 / 4; border-radius: var(--r-sm); overflow: hidden; background: var(--heat-0); }
+.photo-grid img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.photo-open { display: block; width: 100%; height: 100%; padding: 0; border: 0; background: none; }
+.photo-remove {
+  position: absolute; top: 4px; right: 4px; width: 28px; height: 28px; border-radius: 50%; border: 0;
+  background: rgb(0 0 0 / 60%); color: #fff; font-size: 1.1rem; line-height: 1;
+}
+.photo-add { display: flex; align-items: center; justify-content: center; cursor: pointer; }
+.photo-add.busy { opacity: 0.7; cursor: progress; }
+.photo-viewer { position: fixed; inset: 0; z-index: 220; display: grid; place-items: center; padding: 12px; background: rgb(0 0 0 / 88%); }
+.photo-viewer img { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 6px; }
+.photo-close { position: absolute; top: 14px; right: 14px; width: 40px; height: 40px; border-radius: 50%; border: 0; background: rgb(255 255 255 / 18%); color: #fff; font-size: 1.5rem; }

@@ -320,7 +320,7 @@ export function DemoMascots({ stage, onDone }: DemoProps) {
 
 const MODES = [
   { id: 'total', icon: <RepeatIcon size={22} />, name: 'Repàs total', text: '5 preguntes de cada tema, barrejades. Ideal abans d’un examen.' },
-  { id: 'errors', icon: <AlertIcon size={22} />, name: 'Errors', text: 'Les preguntes que vas fallar l’última vegada. Quan les encertes, desapareixen.' },
+  { id: 'errors', icon: <AlertIcon size={22} />, name: 'Errors', text: 'Les preguntes que tens fallades. Quan les encertes, desapareixen. Els dilluns, a més, surt un test amb les errades de la setmana passada.' },
   { id: 'trivial', icon: <GamepadIcon size={22} />, name: 'Trivial', text: 'Un joc per temes: omple la petjada encertant 2 preguntes de cada subtema.' },
   { id: 'extra', icon: <BoltIcon size={22} />, name: 'Extra difícil', text: '15 preguntes de casos pràctics i trampes. Per quan ja domines el temari.' },
 ]

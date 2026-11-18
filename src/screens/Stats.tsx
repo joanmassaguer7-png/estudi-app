@@ -31,7 +31,7 @@ export function Stats({ data, go }: { data: CourseData; go: Navigate }) {
       test: {
         mode: 'errors',
         title: 'Test d’errors',
-        description: 'Les preguntes que tens pendents de consolidar i algunes de noves del mateix tema.',
+        description: 'Les preguntes que tens pendents de fer bé. Cada pregunta surt de la llista quan l’encertes.',
         questions: plan.questions,
       },
     })

@@ -6,13 +6,16 @@ import { db } from '../data/db'
 import { Modal, ScreenHeader, useToast } from '../components/ui'
 import { compareExam, formatExamDate, formatScore } from '../logic/exams'
 import { CompareBars, DiffLine } from './Exams'
+import { ExamParty } from '../components/ExamParty'
 
 const pct = (x: number) => `${Math.round(x * 100)} %`
 
-export function ExamDetail({ examId, data, go }: { examId: string; data: CourseData; go: Navigate }) {
+export function ExamDetail({ examId, celebrate, data, go }: { examId: string; celebrate?: boolean; data: CourseData; go: Navigate }) {
   const toast = useToast()
   const exam = useLiveQuery(() => db.exams.get(examId), [examId])
   const [confirm, setConfirm] = useState(false)
+  const [party, setParty] = useState(!!celebrate)
+  const [photo, setPhoto] = useState<string | null>(null)
   if (exam === undefined) return null
   if (exam === null || !exam) {
     return (
@@ -84,6 +87,30 @@ export function ExamDetail({ examId, data, go }: { examId: string; data: CourseD
         </section>
       )}
 
+      {(exam.photos?.length ?? 0) > 0 && (
+        <section className="card">
+          <h2>Fotos ({exam.photos!.length})</h2>
+          <ul className="photo-grid">
+            {exam.photos!.map((ph, i) => (
+              <li key={ph.id}>
+                <button className="photo-open" onClick={() => setPhoto(ph.dataUrl)} aria-label={`Veure la foto ${i + 1}`}>
+                  <img src={ph.dataUrl} alt="" />
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {photo && (
+        <div className="photo-viewer" role="dialog" aria-modal="true" aria-label="Foto de l’examen" onClick={() => setPhoto(null)}>
+          <img src={photo} alt="Foto de l’examen" />
+          <button className="photo-close" aria-label="Tancar">
+            ×
+          </button>
+        </div>
+      )}
+
       {exam.notes && (
         <section className="card">
           <h2>Notes</h2>
@@ -126,6 +153,10 @@ export function ExamDetail({ examId, data, go }: { examId: string; data: CourseD
       <button className="danger-link" onClick={() => setConfirm(true)}>
         Esborrar l’examen
       </button>
+
+      {party && c.examPct !== null && c.examPct >= 0.5 && (
+        <ExamParty pct={c.examPct} scoreText={exam.maxScore === 10 ? (exam.score ?? 0).toLocaleString('ca-ES', { maximumFractionDigits: 2 }) : formatScore(exam.score, exam.maxScore)} onClose={() => setParty(false)} />
+      )}
 
       {confirm && (
         <Modal onClose={() => setConfirm(false)}>

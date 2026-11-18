@@ -4,6 +4,7 @@ import type { Navigate } from '../nav'
 import { db, newId } from '../data/db'
 import type { Exam, ExamQuestion } from '../data/types'
 import { ScreenHeader, useToast } from '../components/ui'
+import { compressPhoto } from '../data/photos'
 
 const LETTERS = 'ABCD'
 const today = () => {
@@ -27,6 +28,9 @@ export function ExamEdit({ examId, data, go }: { examId?: string; data: CourseDa
   const [scoreText, setScoreText] = useState('')
   const [maxText, setMaxText] = useState('10')
   const [open, setOpen] = useState<string | null>(null)
+  // Nota tal com estava desada abans d'editar: només es felicita quan la nota és nova o ha canviat.
+  const [savedPct, setSavedPct] = useState<number | null>(null)
+  const [adding, setAdding] = useState(0)
 
   useEffect(() => {
     let alive = true
@@ -48,6 +52,7 @@ export function ExamEdit({ examId, data, go }: { examId?: string; data: CourseDa
         updatedAt: now,
       }
       setExam(e)
+      setSavedPct(found && found.score !== null ? found.score / found.maxScore : null)
       setScoreText(e.score === null ? '' : String(e.score).replace('.', ','))
       setMaxText(String(e.maxScore).replace('.', ','))
     })()
@@ -73,13 +78,29 @@ export function ExamEdit({ examId, data, go }: { examId?: string; data: CourseDa
           : score !== null && score < 0
             ? 'La nota no pot ser negativa.'
             : null
-  const canSave = exam.title.trim() !== '' && !scoreError
+  const canSave = exam.title.trim() !== '' && !scoreError && adding === 0
 
   const set = (patch: Partial<Exam>) => setExam({ ...exam, ...patch })
   const setQ = (id: string, patch: Partial<ExamQuestion>) =>
     set({ questions: exam.questions.map((q) => (q.id === id ? { ...q, ...patch } : q)) })
   const toggleTopic = (id: string) =>
     set({ topicIds: exam.topicIds.includes(id) ? exam.topicIds.filter((t) => t !== id) : [...exam.topicIds, id] })
+
+  async function addPhotos(files: FileList | null) {
+    if (!files || files.length === 0) return
+    const list = Array.from(files).filter((f) => f.type.startsWith('image/'))
+    setAdding(list.length)
+    const added: { id: string; dataUrl: string; addedAt: string }[] = []
+    for (const f of list) {
+      try {
+        added.push({ id: newId(), dataUrl: await compressPhoto(f), addedAt: new Date().toISOString() })
+      } catch {
+        toast('No s’ha pogut llegir una de les fotos.')
+      }
+      setAdding((n) => n - 1)
+    }
+    setExam((e) => (e ? { ...e, photos: [...(e.photos ?? []), ...added] } : e))
+  }
 
   function addQuestion() {
     const q = emptyQuestion(exam!.topicIds.length === 1 ? exam!.topicIds[0] : null)
@@ -107,8 +128,10 @@ export function ExamEdit({ examId, data, go }: { examId?: string; data: CourseDa
       updatedAt: new Date().toISOString(),
     }
     await db.exams.put(clean)
-    toast(examId ? 'Examen desat.' : 'Examen afegit.')
-    go({ name: 'exam', examId: clean.id })
+    const pct = clean.score === null ? null : clean.score / clean.maxScore
+    const celebrate = pct !== null && pct >= 0.5 && pct !== savedPct
+    if (!celebrate) toast(examId ? 'Examen desat.' : 'Examen afegit.')
+    go({ name: 'exam', examId: clean.id, celebrate })
   }
 
   const examTopics = data.topics.filter((t) => exam.topicIds.includes(t.id))
@@ -152,6 +175,34 @@ export function ExamEdit({ examId, data, go }: { examId?: string; data: CourseDa
         <label className="field">
           <span>Notes (opcional)</span>
           <textarea rows={2} value={exam.notes ?? ''} onChange={(e) => set({ notes: e.target.value })} placeholder="Per exemple: moltes preguntes de casos pràctics." />
+        </label>
+      </section>
+
+      <section className="card">
+        <h2>Fotos de l’examen</h2>
+        <p className="muted small">
+          Fes fotos de l’enunciat o de la correcció. S’inclouran quan enviïs les preguntes a Claude, que les podrà
+          transcriure.
+        </p>
+        {(exam.photos?.length ?? 0) > 0 && (
+          <ul className="photo-grid">
+            {exam.photos!.map((ph, i) => (
+              <li key={ph.id}>
+                <img src={ph.dataUrl} alt={`Foto ${i + 1} de l’examen`} />
+                <button
+                  className="photo-remove"
+                  aria-label={`Treure la foto ${i + 1}`}
+                  onClick={() => set({ photos: exam.photos!.filter((x) => x.id !== ph.id) })}
+                >
+                  ×
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+        <label className={`secondary-btn wide-btn photo-add ${adding ? 'busy' : ''}`}>
+          {adding ? 'Afegint les fotos…' : 'Afegir fotos'}
+          <input type="file" accept="image/*" multiple hidden disabled={adding > 0} onChange={(e) => (addPhotos(e.target.files), (e.target.value = ''))} />
         </label>
       </section>
 

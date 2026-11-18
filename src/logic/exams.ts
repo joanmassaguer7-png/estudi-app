@@ -114,6 +114,7 @@ export function examsReport(exams: Exam[], topics: Topic[], attempts: Attempt[],
     lines.push(`Temes: ${e.topicIds.map(tname).join(' · ') || 'no indicats'}`)
     if (c.testPct !== null) lines.push(`Mitjana dels tests d’aquests temes fins al dia de l’examen: ${Math.round(c.testPct * 100)} % (${c.answered} respostes)`)
     if (e.notes) lines.push(`Notes: ${e.notes}`)
+    if (e.photos?.length) lines.push(`Fotos adjuntes: ${e.photos.map((_, i) => photoName(e, i)).join(', ')}`)
     lines.push(`Preguntes recollides: ${e.questions.length}`)
     lines.push('')
     e.questions.forEach((q, i) => lines.push(...questionLines(q, i + 1, tname)))
@@ -131,4 +132,10 @@ function questionLines(q: ExamQuestion, n: number, tname: (id: string | null) =>
   if (q.note) out.push(`   Nota: ${q.note}`)
   out.push('')
   return out
+}
+
+/** Nom del fitxer de cada foto quan s'envia (ajuda a saber de quin examen és). */
+export function photoName(e: Exam, i: number): string {
+  const slug = e.title.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 30) || 'examen'
+  return `${e.date}-${slug}-foto-${i + 1}.jpg`
 }
