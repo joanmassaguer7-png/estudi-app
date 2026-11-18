@@ -4,7 +4,7 @@
 //  3. En tocar un avís, obre l'app directament al Repàs diari.
 // Les dades d'estudi són a IndexedDB; aquí només es llegeixen per decidir l'avís.
 
-const CACHE = 'estudi-app-v10'
+const CACHE = 'estudi-app-v11'
 const LATE_AFTER_MIN = 120
 // Mascota de cada dia, de dilluns a diumenge (còpia de src/data/mascots.ts).
 const MASCOTS = [

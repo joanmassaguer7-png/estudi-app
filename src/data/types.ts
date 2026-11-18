@@ -52,7 +52,7 @@ export interface Question {
   generation?: { source: string; createdAt: string; model?: string }
 }
 
-export type StudyMode = 'tema' | 'repas-diari' | 'repas-total' | 'errors' | 'trivial' | 'extra'
+export type StudyMode = 'tema' | 'repas-diari' | 'repas-total' | 'errors' | 'trivial' | 'extra' | 'examens'
 
 /** Un intent = una resposta (o no-resposta) a una pregunta dins d'un test. */
 export interface Attempt {
@@ -102,4 +102,37 @@ export interface QuestionReport {
   date: string
   /** Còpia de la pregunta tal com era quan es va marcar. */
   question: Pick<Question, 'text' | 'options' | 'correctIndex' | 'subtopicId'>
+}
+
+/** Una pregunta d'un examen real, tal com la recorda o l'ha copiada la persona. */
+export interface ExamQuestion {
+  id: string
+  text: string
+  /** Opcions de resposta, si era tipus test (poden faltar si no es recorden). */
+  options: string[]
+  /** Resposta correcta, si se sap. */
+  correctIndex: number | null
+  /** Tema al qual pertany, si se sap. */
+  topicId: string | null
+  /** Si la persona la va encertar a l'examen (null = no ho sap). */
+  gotRight: boolean | null
+  note?: string
+}
+
+/** Un examen real del curs, amb la nota i els temes que hi entraven. */
+export interface Exam {
+  id: string
+  courseId: string
+  title: string
+  /** Data de l'examen (AAAA-MM-DD). */
+  date: string
+  topicIds: string[]
+  /** Nota obtinguda, o null si encara no se sap. */
+  score: number | null
+  /** Nota màxima (normalment 10). */
+  maxScore: number
+  notes?: string
+  questions: ExamQuestion[]
+  createdAt: string
+  updatedAt: string
 }

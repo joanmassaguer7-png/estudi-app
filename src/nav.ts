@@ -21,6 +21,9 @@ export type Screen =
   | { name: 'trivial-pick' }
   | { name: 'tutorial'; fromStart?: boolean }
   | { name: 'stats' }
+  | { name: 'exams' }
+  | { name: 'exam'; examId: string }
+  | { name: 'exam-edit'; examId?: string }
   | { name: 'trivial'; topicId: string }
 
 export type Navigate = (s: Screen) => void

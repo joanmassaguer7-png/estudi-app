@@ -8,7 +8,7 @@
 // ocupar poc al mòbil; la importació accepta tant fitxers comprimits com JSON normal.
 
 import { crownsKey, db } from './db'
-import type { Attempt, Course, Question, QuestionReport, Subtopic, TestSession, Topic } from './types'
+import type { Attempt, Course, Exam, Question, QuestionReport, Subtopic, TestSession, Topic } from './types'
 
 export const CONTENT_FORMAT = 'estudi-app/contingut'
 export const PROGRESS_FORMAT = 'estudi-app/progres'
@@ -34,6 +34,7 @@ export interface ProgressFile {
   crowns: Record<string, string[]>
   /** Preguntes marcades per revisar (opcional: els fitxers antics no en tenen). */
   reports?: QuestionReport[]
+  exams?: Exam[]
 }
 
 // ---------- Validació (funcions pures, sense base de dades) ----------
@@ -177,6 +178,7 @@ export async function buildProgressFile(): Promise<ProgressFile> {
     sessions: await db.sessions.toArray(),
     crowns,
     reports: await db.reports.toArray(),
+    exams: await db.exams.toArray(),
   }
 }
 
@@ -187,10 +189,11 @@ export async function importProgressFile(data: unknown): Promise<{ attempts: num
   if (!Array.isArray(p.attempts) || !Array.isArray(p.sessions)) throw new Error('El fitxer de progrés està mal format.')
   const before = await db.attempts.count()
   const beforeS = await db.sessions.count()
-  await db.transaction('rw', [db.attempts, db.sessions, db.settings, db.reports], async () => {
+  await db.transaction('rw', [db.attempts, db.sessions, db.settings, db.reports, db.exams], async () => {
     await db.attempts.bulkPut(p.attempts!)
     await db.sessions.bulkPut(p.sessions!)
     if (Array.isArray(p.reports)) await db.reports.bulkPut(p.reports)
+    if (Array.isArray(p.exams)) await db.exams.bulkPut(p.exams)
     for (const [courseId, ids] of Object.entries(p.crowns ?? {})) {
       await db.settings.put({ key: crownsKey(courseId), value: ids })
     }
@@ -247,13 +250,14 @@ export async function buildBackup() {
     sessions: packSessions(await db.sessions.toArray(), questions),
     settings: await db.settings.toArray(),
     reports: await db.reports.toArray(),
+    exams: await db.exams.toArray(),
   }
 }
 
 export async function restoreBackup(data: unknown) {
   const b = data as Awaited<ReturnType<typeof buildBackup>>
   if (!b || b.format !== BACKUP_FORMAT) throw new Error('Aquest fitxer no és una còpia de seguretat.')
-  const tables = [db.courses, db.topics, db.subtopics, db.questions, db.attempts, db.sessions, db.settings, db.reports]
+  const tables = [db.courses, db.topics, db.subtopics, db.questions, db.attempts, db.sessions, db.settings, db.reports, db.exams]
   await db.transaction('rw', tables, async () => {
     for (const t of tables) await t.clear()
     await db.courses.bulkAdd(b.courses)
@@ -264,6 +268,7 @@ export async function restoreBackup(data: unknown) {
     await db.sessions.bulkAdd(unpackSessions(b.sessions, b.questions))
     await db.settings.bulkAdd(b.settings)
     if (Array.isArray(b.reports)) await db.reports.bulkAdd(b.reports)
+    if (Array.isArray(b.exams)) await db.exams.bulkAdd(b.exams)
   })
 }
 
@@ -349,5 +354,28 @@ export async function shareBackup(email = ''): Promise<ShareResult> {
     }
   }
   await downloadJson(data, `copia-estudi-${dateStamp()}.json`, true)
+  return 'descarregada'
+}
+
+/**
+ * Comparteix un fitxer de text amb el menú del mòbil (correu, WhatsApp, Drive…) o, si el
+ * navegador no pot, el descarrega.
+ */
+export async function shareTextFile(text: string, filename: string, title: string, body: string): Promise<ShareResult> {
+  const file = new File([text], filename, { type: 'text/plain' })
+  if (navigator.canShare?.({ files: [file] })) {
+    try {
+      await navigator.share({ files: [file], title, text: body })
+      return 'enviada'
+    } catch (e) {
+      if ((e as Error).name === 'AbortError') return 'cancel·lada'
+    }
+  }
+  const url = URL.createObjectURL(file)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  a.click()
+  setTimeout(() => URL.revokeObjectURL(url), 1000)
   return 'descarregada'
 }

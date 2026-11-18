@@ -21,15 +21,26 @@ import { Guada } from '../components/Guada'
 import { TUTORIAL_KEY, type TutorialState } from './Tutorial'
 import { CHAPTERS } from '../tutorial/chapters'
 import type { Navigate } from '../nav'
-import { AlertIcon, BoltIcon, ChartIcon, CrownIcon, GamepadIcon, GearIcon, MoonIcon, PawIcon, RepeatIcon, SearchIcon, SunIcon } from '../components/icons'
+import { AlertIcon, BoltIcon, ChartIcon, CrownIcon, ExamIcon, GamepadIcon, GearIcon, MoonIcon, PawIcon, RepeatIcon, SearchIcon, SunIcon } from '../components/icons'
 import { setTheme, useTheme } from '../theme'
 import { BirthdayParty } from '../components/BirthdayParty'
 import { BIRTHDAY_SEEN_KEY, isBirthday } from '../data/birthday'
 import { ProgressBar, useToast } from '../components/ui'
+import { db } from '../data/db'
+import { compareExam, formatScore } from '../logic/exams'
 
 export function Home({ data, go }: { data: CourseData; go: Navigate }) {
   const theme = useTheme()
   const { course, topics, questions, attempts, sessions, crowns } = data
+  const exams = useLiveQuery(() => db.exams.where('courseId').equals(course.id).toArray(), [course.id]) ?? []
+  const lastExam = [...exams].filter((e) => e.score !== null).sort((a, b) => b.date.localeCompare(a.date))[0]
+  const lastCmp = lastExam ? compareExam(lastExam, attempts) : null
+  const examsLine = !exams.length
+    ? 'Apunta les notes i les preguntes dels exàmens reals'
+    : lastExam
+      ? `Últim: ${formatScore(lastExam.score, lastExam.maxScore)}` +
+        (lastCmp?.diff != null ? (Math.abs(lastCmp.diff) <= 3 ? ' · com als tests' : ` · ${lastCmp.diff > 0 ? '+' : '−'}${Math.abs(lastCmp.diff)} punts vs. tests`) : '')
+      : `${exams.length} ${exams.length === 1 ? 'examen' : 'exàmens'} sense nota`
   const toast = useToast()
   const [search, setSearch] = useState('')
   const [popped, setPopped] = useState<string | null>(null)
@@ -274,6 +285,14 @@ export function Home({ data, go }: { data: CourseData; go: Navigate }) {
           <span className="mode-sub">{extraAvailable === 0 ? 'Sense preguntes' : `${Math.min(EXTRA_TEST_SIZE, extraAvailable)} preguntes`}</span>
         </button>
       </div>
+
+      <button className="exams-entry" onClick={() => go({ name: 'exams' })}>
+        <ExamIcon size={26} />
+        <span>
+          <strong>Exàmens</strong>
+          <small>{examsLine}</small>
+        </span>
+      </button>
 
       <section className="home-section">
         <div className="section-head">

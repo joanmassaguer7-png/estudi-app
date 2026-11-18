@@ -1,5 +1,5 @@
 import Dexie, { type EntityTable } from 'dexie'
-import type { Attempt, Course, Question, QuestionReport, Setting, Subtopic, TestSession, Topic } from './types'
+import type { Attempt, Course, Question, QuestionReport, Setting, Subtopic, TestSession, Topic, Exam } from './types'
 
 // Dexie és una capa sobre IndexedDB (la base de dades que porta el navegador).
 // Aquí declarem les "taules" i quins camps volem poder cercar ràpidament (índexs).
@@ -12,6 +12,7 @@ class EstudiDB extends Dexie {
   sessions!: EntityTable<TestSession, 'id'>
   settings!: EntityTable<Setting, 'key'>
   reports!: EntityTable<QuestionReport, 'id'>
+  exams!: EntityTable<Exam, 'id'>
 
   constructor() {
     super('estudi-app')
@@ -28,6 +29,10 @@ class EstudiDB extends Dexie {
     // Versió 2: preguntes marcades per revisar.
     this.version(2).stores({
       reports: 'id, courseId, questionId, date',
+    })
+    // Versió 3: exàmens reals.
+    this.version(3).stores({
+      exams: 'id, courseId, date',
     })
   }
 }
@@ -56,7 +61,7 @@ export function newId(): string {
 
 /** Esborra un curs i tot el que en depèn (temari, preguntes, historial, corones i marques). */
 export async function deleteCourse(courseId: string) {
-  await db.transaction('rw', [db.courses, db.topics, db.subtopics, db.questions, db.attempts, db.sessions, db.settings, db.reports], async () => {
+  await db.transaction('rw', [db.courses, db.topics, db.subtopics, db.questions, db.attempts, db.sessions, db.settings, db.reports, db.exams], async () => {
     await db.courses.delete(courseId)
     await db.topics.where('courseId').equals(courseId).delete()
     await db.subtopics.where('courseId').equals(courseId).delete()
@@ -64,6 +69,7 @@ export async function deleteCourse(courseId: string) {
     await db.attempts.where('courseId').equals(courseId).delete()
     await db.sessions.where('courseId').equals(courseId).delete()
     await db.reports.where('courseId').equals(courseId).delete()
+    await db.exams.where('courseId').equals(courseId).delete()
     await db.settings.delete(crownsKey(courseId))
     const active = await db.settings.get(ACTIVE_COURSE_KEY)
     if (active?.value === courseId) await db.settings.delete(ACTIVE_COURSE_KEY)

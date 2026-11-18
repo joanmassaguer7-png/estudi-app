@@ -94,3 +94,10 @@ export const ChartIcon = ({ size = 22, className }: P) => (
     <path d="M4 20h16M7 16v-5M12 16V6M17 16v-8" />
   </svg>
 )
+
+export const ExamIcon = ({ size = 24, className }: P) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" className={className} aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M7 3h7l4 4v14H7z" />
+    <path d="M14 3v4h4M10 12l1.5 1.5L15 10M10 17h5" />
+  </svg>
+)

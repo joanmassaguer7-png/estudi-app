@@ -11,6 +11,9 @@ import { TestRunner } from './screens/TestRunner'
 import { TopicScreen } from './screens/Topic'
 import { TrivialGame, TrivialPick } from './screens/Trivial'
 import { Stats } from './screens/Stats'
+import { Exams } from './screens/Exams'
+import { ExamDetail } from './screens/ExamDetail'
+import { ExamEdit } from './screens/ExamEdit'
 import { CHAPTERS } from './tutorial/chapters'
 import { Tutorial } from './screens/Tutorial'
 import { NameSetup } from './screens/NameSetup'
@@ -136,6 +139,12 @@ export default function App() {
         return <Tutorial go={go} startAt={screen.fromStart ? CHAPTERS[0].id : undefined} />
       case 'stats':
         return <Stats data={data!} go={go} />
+      case 'exams':
+        return <Exams data={data!} go={go} />
+      case 'exam':
+        return <ExamDetail examId={screen.examId} data={data!} go={go} />
+      case 'exam-edit':
+        return <ExamEdit key={screen.examId ?? 'nou'} examId={screen.examId} data={data!} go={go} />
       case 'trivial-pick':
         return <TrivialPick data={data!} go={go} />
       case 'trivial':
