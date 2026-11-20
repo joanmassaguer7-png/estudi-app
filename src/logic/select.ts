@@ -154,6 +154,33 @@ export function buildTotalReview(topics: Topic[], questions: Question[], rng: Rn
   return shuffle(picked, rng)
 }
 
+/** Preguntes per tema en el repàs d'un examen. */
+export const EXAM_REVIEW_PER_TOPIC = 5
+
+/**
+ * Repàs d'un examen («arreplegar» temes passats): unes quantes preguntes de cada tema de l'examen,
+ * prioritzant les fallades, les que mai no han sortit i les que fa més temps que no es veuen.
+ */
+export function buildExamReview(topicIds: string[], questions: Question[], attempts: Attempt[], rng: Rng = Math.random): Question[] {
+  const stats = statsByQuestion(attempts)
+  const now = Date.now()
+  const score = (q: Question) => {
+    const s = stats.get(q.id)
+    if (!s) return 2 + rng() // mai vista
+    const days = s.lastDate ? (now - Date.parse(s.lastDate)) / 86_400_000 : 30
+    return (s.lastCorrect ? 0 : 2.5) + s.wrong / s.seen + Math.min(days, 30) / 30 + rng()
+  }
+  const picked = topicIds.flatMap((t) =>
+    questions
+      .filter((q) => q.topicId === t)
+      .map((q) => ({ q, v: score(q) }))
+      .sort((a, b) => b.v - a.v)
+      .slice(0, EXAM_REVIEW_PER_TOPIC)
+      .map((x) => x.q),
+  )
+  return shuffle(picked, rng)
+}
+
 /** Últim intent de cada pregunta. */
 function lastAttempts(attempts: Attempt[]): Map<string, Attempt> {
   const map = new Map<string, Attempt>()

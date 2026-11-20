@@ -4,6 +4,8 @@ import type { CourseData } from '../data/hooks'
 import {
   buildExtraTest,
   newErrors,
+  buildExamReview,
+  EXAM_REVIEW_PER_TOPIC,
   shuffle,
   pendingErrors,
   planErrors,
@@ -16,7 +18,7 @@ import {
 } from '../logic/select'
 import { doneToday, planDaily, reminderPhase, streak } from '../logic/daily'
 import { BACKUP_SNOOZE_KEY, LAST_BACKUP_KEY, useAppSettings } from '../data/hooks'
-import { mascotFace, mascotFor } from '../data/mascots'
+import { WithArticle, adj, mascotFace, mascotFor, withArticle } from '../data/mascots'
 import { shareBackup } from '../data/package'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { getSetting } from '../data/db'
@@ -30,7 +32,7 @@ import { BirthdayParty } from '../components/BirthdayParty'
 import { BIRTHDAY_SEEN_KEY, isBirthday } from '../data/birthday'
 import { ProgressBar, useToast } from '../components/ui'
 import { db } from '../data/db'
-import { compareExam, formatScore } from '../logic/exams'
+import { compareExam, formatExamDate, formatScore } from '../logic/exams'
 
 export function Home({ data, go }: { data: CourseData; go: Navigate }) {
   const theme = useTheme()
@@ -48,6 +50,21 @@ export function Home({ data, go }: { data: CourseData; go: Navigate }) {
   const [search, setSearch] = useState('')
   const [popped, setPopped] = useState<string | null>(null)
   const [partyAgain, setPartyAgain] = useState(false)
+  const [byExam, setByExam] = useState(() => {
+    try {
+      return localStorage.getItem('estudi-app-temes-per-examen') === '1'
+    } catch {
+      return false
+    }
+  })
+  function setGrouping(v: boolean) {
+    setByExam(v)
+    try {
+      localStorage.setItem('estudi-app-temes-per-examen', v ? '1' : '0')
+    } catch {
+      /* sense emmagatzematge */
+    }
+  }
 
   const visibleTopics = topics.filter((t) =>
     `${t.number} ${t.title}`.toLowerCase().includes(search.trim().toLowerCase()),
@@ -72,6 +89,23 @@ export function Home({ data, go }: { data: CourseData; go: Navigate }) {
   const thisYear = new Date().getFullYear()
   const showParty = !!settings && birthdayToday && (partyAgain || settings.birthdaySeen !== thisYear)
   const backupDue = settings ? backupDaysDue(settings.lastBackup, settings.backupSnooze, sessions.map((x) => x.finishedAt)) : null
+  const examGroups = (() => {
+    const visible = new Set(visibleTopics.map((t) => t.id))
+    const groups = [...exams]
+      .sort((a, b) => a.date.localeCompare(b.date))
+      .map((e) => ({
+        id: e.id,
+        title: e.title,
+        sub: `${formatExamDate(e.date)}${e.score !== null ? ` · ${formatScore(e.score, e.maxScore)}` : ''}`,
+        topicIds: e.topicIds,
+        topics: topics.filter((t) => e.topicIds.includes(t.id) && visible.has(t.id)),
+      }))
+      .filter((g) => g.topics.length > 0 || !search.trim())
+    const inAny = new Set(exams.flatMap((e) => e.topicIds))
+    const rest = visibleTopics.filter((t) => !inAny.has(t.id))
+    if (rest.length) groups.push({ id: 'cap', title: 'Sense examen', sub: `${rest.length} ${rest.length === 1 ? 'tema' : 'temes'}`, topicIds: rest.map((t) => t.id), topics: rest })
+    return groups
+  })()
 
   async function toggleCrown(topicId: string) {
     const active = crowns.includes(topicId)
@@ -140,6 +174,49 @@ export function Home({ data, go }: { data: CourseData; go: Navigate }) {
             : `Les ${plan.total === 1 ? 'pregunta que tens' : `${plan.total} preguntes que tens`} pendent${plan.total === 1 ? '' : 's'} de fer bé.`) +
           ' Cada pregunta surt de la llista quan l’encertes.',
         questions: plan.questions,
+      },
+    })
+  }
+
+  function topicCard(t: (typeof topics)[number]) {
+    const m = mastery(
+      questions.filter((q) => q.topicId === t.id),
+      attempts,
+    )
+    const on = crowns.includes(t.id)
+    const subCount = data.subtopics.filter((s) => s.topicId === t.id).length
+    return (
+      <article key={t.id} className={`topic-card ${on ? 'crowned' : ''}`}>
+        <button className="topic-main" onClick={() => go({ name: 'topic', topicId: t.id })}>
+          <span className="topic-number">{t.number}</span>
+          <span className="topic-title">{t.title}</span>
+          <span className="topic-meta">
+            {subCount} subtemes, {m.mastered} de {m.total} dominades
+          </span>
+          <ProgressBar value={m.total ? m.mastered / m.total : 0} />
+        </button>
+        <button
+          className={`crown-btn ${on ? 'on' : ''} ${popped === t.id ? 'pop' : ''}`}
+          onClick={() => toggleCrown(t.id)}
+          aria-pressed={on}
+          aria-label={on ? `Treure el tema ${t.number} del Repàs diari` : `Afegir el tema ${t.number} al Repàs diari`}
+        >
+          <CrownIcon size={20} />
+        </button>
+      </article>
+    )
+  }
+
+  function startExamReview(title: string, topicIds: string[]) {
+    const qs = buildExamReview(topicIds, questions, attempts)
+    if (qs.length === 0) return toast('Aquests temes encara no tenen preguntes.')
+    go({
+      name: 'pretest',
+      test: {
+        mode: 'repas-total',
+        title: `Repàs: ${title}`,
+        description: `${EXAM_REVIEW_PER_TOPIC} preguntes de cada tema de l’examen (${topicIds.length} ${topicIds.length === 1 ? 'tema' : 'temes'}), sobretot les que falles o fa temps que no veus.`,
+        questions: qs,
       },
     })
   }
@@ -231,19 +308,24 @@ export function Home({ data, go }: { data: CourseData; go: Navigate }) {
       )}
 
       {/* L'element protagonista: el Repàs diari com una placa identificativa de collar. */}
+      <WeekStrip />
+
       <button className="tag-hero" onClick={startDaily}>
         <span className="tag-ring" aria-hidden="true" />
         <span className="sign-inner">
-          <span className="sign-crown has-face" title={`Avui t’acompanya en ${mascot.name}`}>
-            <img key={late ? 'trist' : 'content'} src={mascotFace(mascot, late ? 'trist' : 'content')} alt={mascot.name} width={56} height={56} />
+          <span className="sign-face">
+            <span className="sign-crown has-face" title={`Avui t’acompanya ${withArticle(mascot)}`}>
+              <img key={late ? 'trist' : 'content'} src={mascotFace(mascot, late ? 'trist' : 'content')} alt="" width={56} height={56} />
+            </span>
+            <span className="sign-face-name">{mascot.name}</span>
           </span>
           <span className="sign-text">
             <span className="sign-title">Repàs diari</span>
             <span className="sign-sub">
               {dailyDone
-                ? `Fet avui. En ${mascot.name} ja té la seva galeta.`
+                ? `Fet avui. ${WithArticle(mascot)} ja té la seva galeta.`
                 : late
-                  ? `En ${mascot.name} està trist: encara no l’has fet.`
+                  ? `${WithArticle(mascot)} està ${adj(mascot, 'trist')}: encara no l’has fet.`
                   : crowns.length > 0
                     ? `Fins a 10 preguntes de ${crowns.length === 1 ? 'l’únic tema marcat' : `${crowns.length} temes marcats`}`
                     : 'Fins a 10 preguntes de tots els temes'}
@@ -346,36 +428,39 @@ export function Home({ data, go }: { data: CourseData; go: Navigate }) {
         )}
         {visibleTopics.length === 0 && <p className="muted">Cap tema coincideix amb «{search}».</p>}
 
-        <div className="topic-grid">
-          {visibleTopics.map((t) => {
-            const m = mastery(
-              questions.filter((q) => q.topicId === t.id),
-              attempts,
-            )
-            const on = crowns.includes(t.id)
-            const subCount = data.subtopics.filter((s) => s.topicId === t.id).length
-            return (
-              <article key={t.id} className={`topic-card ${on ? 'crowned' : ''}`}>
-                <button className="topic-main" onClick={() => go({ name: 'topic', topicId: t.id })}>
-                  <span className="topic-number">{t.number}</span>
-                  <span className="topic-title">{t.title}</span>
-                  <span className="topic-meta">
-                    {subCount} subtemes, {m.mastered} de {m.total} dominades
+        {exams.length > 0 && (
+          <div className="seg topic-view" role="group" aria-label="Com vols veure els temes">
+            <button className={!byExam ? 'on' : ''} onClick={() => setGrouping(false)} aria-pressed={!byExam}>
+              Tots
+            </button>
+            <button className={byExam ? 'on' : ''} onClick={() => setGrouping(true)} aria-pressed={byExam}>
+              Per exàmens
+            </button>
+          </div>
+        )}
+
+        {byExam && exams.length > 0 ? (
+          <div className="exam-groups">
+            {examGroups.map((g) => (
+              <div key={g.id} className="exam-group">
+                <div className="exam-group-head">
+                  <span>
+                    <strong>{g.title}</strong>
+                    <small>{g.sub}</small>
                   </span>
-                  <ProgressBar value={m.total ? m.mastered / m.total : 0} />
-                </button>
-                <button
-                  className={`crown-btn ${on ? 'on' : ''} ${popped === t.id ? 'pop' : ''}`}
-                  onClick={() => toggleCrown(t.id)}
-                  aria-pressed={on}
-                  aria-label={on ? `Treure el tema ${t.number} del Repàs diari` : `Afegir el tema ${t.number} al Repàs diari`}
-                >
-                  <CrownIcon size={20} />
-                </button>
-              </article>
-            )
-          })}
-        </div>
+                  {g.topicIds.length > 0 && g.id !== 'cap' && (
+                    <button className="secondary-btn small-btn" onClick={() => startExamReview(g.title, g.topicIds)}>
+                      Repassar
+                    </button>
+                  )}
+                </div>
+                <div className="topic-grid">{g.topics.map(topicCard)}</div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="topic-grid">{visibleTopics.map(topicCard)}</div>
+        )}
       </section>
 
       <section className="home-section">
@@ -440,4 +525,25 @@ function backupDaysDue(last: string | null, snooze: string | null, testDates: st
   if (testDates.length === 0) return null
   const first = Math.min(...testDates.map((d) => Date.parse(d)))
   return now - first >= 7 * DAY ? 0 : null
+}
+
+/** Calendari de la setmana: qui acompanya el Repàs diari avui i els 6 dies següents. */
+function WeekStrip() {
+  const today = new Date()
+  const days = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(today.getFullYear(), today.getMonth(), today.getDate() + i)
+    return { date: d, mascot: mascotFor(d) }
+  })
+  return (
+    <ol className="week-strip" aria-label="Mascotes dels propers 7 dies">
+      {days.map(({ date, mascot: m }, i) => (
+        <li key={i} className={i === 0 ? 'today' : ''} title={`${i === 0 ? 'Avui' : m.day}: ${m.name}`}>
+          <span className="week-day">{i === 0 ? 'Avui' : m.short}</span>
+          <img src={mascotFace(m, 'content')} alt="" width={34} height={34} />
+          <span className="week-name">{m.name}</span>
+          <span className="visually-hidden">{date.toLocaleDateString('ca-ES', { weekday: 'long', day: 'numeric' })}</span>
+        </li>
+      ))}
+    </ol>
+  )
 }

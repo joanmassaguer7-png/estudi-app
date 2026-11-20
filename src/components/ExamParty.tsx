@@ -1,12 +1,12 @@
 import { useMemo, useRef, useState, type KeyboardEvent, type PointerEvent } from 'react'
-import { mascotFace, type Mascot } from '../data/mascots'
+import { mascotFace, withArticle, type Mascot } from '../data/mascots'
 import { examPartyMascots } from '../logic/party'
 import { useAppSettings } from '../data/hooks'
 import { Modal } from './ui'
 
 const COLORS = ['#f2a33a', '#e2654f', '#2e9d63', '#3a8fd9', '#c25ec9', '#f2d03a', '#1f6b5c', '#ff8fb3']
 
-const names = (ms: Mascot[]) => (ms.length === 2 ? `en ${ms[0].name} i en ${ms[1].name}` : 'tota la colla')
+const names = (ms: Mascot[]) => (ms.length === 2 ? `${withArticle(ms[0])} i ${withArticle(ms[1])}` : 'tota la colla')
 
 /**
  * Felicitació per un examen aprovat. Es tanca donant UNA galeta (en forma de petjada)

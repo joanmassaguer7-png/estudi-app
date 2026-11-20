@@ -1,5 +1,5 @@
 import { type CourseData, useAppSettings } from '../data/hooks'
-import { mascotFace, mascotFor } from '../data/mascots'
+import { adj, mascotFace, mascotFor, withArticle, WithArticle } from '../data/mascots'
 import type { ReminderSettings } from '../data/reminder'
 import { doneToday, planDaily, reminderPhase, streak } from '../logic/daily'
 import type { Navigate } from '../nav'
@@ -44,7 +44,7 @@ export function DailyPrompt({
         <img className="daily-face" src={mascotFace(mascot, late ? 'trist' : 'content')} alt={mascot.name} width={120} height={120} />
         {late ? (
           <>
-            <h3>En {mascot.name} està trist</h3>
+            <h3>{WithArticle(mascot)} està {adj(mascot, 'trist')}</h3>
             <p>
               Encara no has fet el repàs d’avui. Només són 10 preguntes.
               {days > 0 ? ` No perdis la ratxa de ${days} ${days === 1 ? 'dia' : 'dies'}.` : ''}
@@ -54,7 +54,7 @@ export function DailyPrompt({
           <>
             <h3>{name ? `${name}, és hora` : 'Hora'} del Repàs diari!</h3>
             <p>
-              Avui t’acompanya en {mascot.name}.
+              Avui t’acompanya {withArticle(mascot)}.
               {days > 0 ? ` Portes ${days} ${days === 1 ? 'dia' : 'dies'} seguits.` : ''}
             </p>
           </>

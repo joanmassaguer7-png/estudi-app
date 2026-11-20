@@ -11,7 +11,7 @@
 // La configuració es guarda a la taula `settings` perquè el service worker la pugui llegir.
 
 import { getSetting, setSetting } from './db'
-import { type Mascot, mascotFace, mascotFor } from './mascots'
+import { type Mascot, mascotFace, mascotFor, WithArticle, adj } from './mascots'
 
 export interface ReminderSettings {
   enabled: boolean
@@ -140,6 +140,6 @@ export async function showTestNotification(mood: 'content' | 'trist', name = '',
 export function notificationText(mascot: Mascot, mood: 'content' | 'trist', name = '') {
   const who = name ? `${name}, ` : ''
   return mood === 'content'
-    ? { title: `${who}hora del Repàs diari!`.replace(/^h/, 'H'), body: `En ${mascot.name} et fa companyia: 10 preguntes i llestos.` }
-    : { title: `${who}encara no has fet el repàs d’avui`.replace(/^e/, 'E'), body: `En ${mascot.name} està trist… Només són 10 preguntes. Som-hi?` }
+    ? { title: `${who}hora del Repàs diari!`.replace(/^h/, 'H'), body: `${WithArticle(mascot)} et fa companyia: 10 preguntes i llestos.` }
+    : { title: `${who}encara no has fet el repàs d’avui`.replace(/^e/, 'E'), body: `${WithArticle(mascot)} està ${adj(mascot, 'trist')}… Només són 10 preguntes. Som-hi?` }
 }

@@ -58,6 +58,10 @@ export function Exams({ data, go }: { data: CourseData; go: Navigate }) {
             Si hi apuntes les preguntes que van sortir, les podràs practicar i ajudaran a fer preguntes més semblants a
             les reals.
           </p>
+          <p>
+            També pots crear l’examen abans de fer-lo, sense nota: a l’inici podràs veure els temes agrupats per exàmens i
+            repassar de cop tots els temes de cada un.
+          </p>
         </section>
       ) : (
         <ul className="exam-list">

@@ -6,7 +6,7 @@ import { useEffect, useReducer, useState } from 'react'
 import { AlertIcon, BoltIcon, CrownIcon, GamepadIcon, RepeatIcon } from '../components/icons'
 import { PawTrail } from '../components/PawTrail'
 import { TreatModal } from '../components/TreatModal'
-import { MASCOTS, mascotFace, mascotFor } from '../data/mascots'
+import { MASCOTS, mascotFace, mascotFor, WithArticle, adj } from '../data/mascots'
 import { canFinish, initialTestState, testReducer, unansweredCount } from '../logic/testState'
 
 export interface DemoProps {
@@ -431,8 +431,8 @@ export function DemoReminder({ stage, onDone }: DemoProps) {
               <strong>{shown === 'content' ? 'Hora del Repàs diari!' : 'Encara no has fet el repàs d’avui'}</strong>
               <small>
                 {shown === 'content'
-                  ? `En ${m.name} et fa companyia: 10 preguntes i llestos.`
-                  : `En ${m.name} està trist… Només són 10 preguntes.`}
+                  ? `${WithArticle(m)} et fa companyia: 10 preguntes i llestos.`
+                  : `${WithArticle(m)} està ${adj(m, 'trist')}… Només són 10 preguntes.`}
               </small>
             </span>
           </button>

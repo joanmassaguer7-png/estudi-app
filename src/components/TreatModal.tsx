@@ -1,5 +1,5 @@
 import { useRef, useState, type KeyboardEvent, type PointerEvent } from 'react'
-import { type Mascot, mascotFace } from '../data/mascots'
+import { type Mascot, adj, mascotFace, withArticle, WithArticle } from '../data/mascots'
 import { Modal } from './ui'
 import { useAppSettings } from '../data/hooks'
 
@@ -98,7 +98,7 @@ export function TreatModal({ mascot, days, onClose }: { mascot: Mascot; days: nu
         </div>
         <h3>{name ? `Molt bé, ${name}!` : 'Molt bé!'} Ja has fet el repàs d’avui!</h3>
         <p>
-          {eating ? `En ${mascot.name} està molt content. Fins demà!` : `Dona un premi a en ${mascot.name}.`}
+          {eating ? `${WithArticle(mascot)} està molt ${adj(mascot, 'content')}. Fins demà!` : `Dona un premi a ${withArticle(mascot)}.`}
           {!eating && days > 1 && <span className="treat-streak"> Portes {days} dies seguits.</span>}
         </p>
         <p className="treat-hint" aria-hidden={eating}>
@@ -113,7 +113,7 @@ export function TreatModal({ mascot, days, onClose }: { mascot: Mascot; days: nu
           onPointerUp={onPointerUp}
           onPointerCancel={onPointerUp}
           onKeyDown={onKeyDown}
-          aria-label={`Donar la galeta a en ${mascot.name} i tancar`}
+          aria-label={`Donar la galeta a ${withArticle(mascot)} i tancar`}
         >
           {mascot.species === 'gos' ? <BoneBiscuit /> : <FishBiscuit />}
         </button>

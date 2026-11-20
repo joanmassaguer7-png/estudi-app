@@ -7,6 +7,7 @@ import { Modal, ScreenHeader, useToast } from '../components/ui'
 import { compareExam, formatExamDate, formatScore } from '../logic/exams'
 import { CompareBars, DiffLine } from './Exams'
 import { ExamParty } from '../components/ExamParty'
+import { buildExamReview, EXAM_REVIEW_PER_TOPIC } from '../logic/select'
 
 const pct = (x: number) => `${Math.round(x * 100)} %`
 
@@ -16,6 +17,20 @@ export function ExamDetail({ examId, celebrate, data, go }: { examId: string; ce
   const [confirm, setConfirm] = useState(false)
   const [party, setParty] = useState(!!celebrate)
   const [photo, setPhoto] = useState<string | null>(null)
+  function startReview() {
+    if (!exam) return
+    const qs = buildExamReview(exam.topicIds, data.questions, data.attempts)
+    if (qs.length === 0) return toast('Aquests temes encara no tenen preguntes.')
+    go({
+      name: 'pretest',
+      test: {
+        mode: 'repas-total',
+        title: `Repàs: ${exam.title}`,
+        description: `${EXAM_REVIEW_PER_TOPIC} preguntes de cada tema de l’examen, sobretot les que falles o fa temps que no veus.`,
+        questions: qs,
+      },
+    })
+  }
   if (exam === undefined) return null
   if (exam === null || !exam) {
     return (
@@ -57,6 +72,19 @@ export function ExamDetail({ examId, celebrate, data, go }: { examId: string; ce
           </p>
         )}
       </section>
+
+      {exam.topicIds.length > 0 && (
+        <section className="card">
+          <h2>Repassar aquests temes</h2>
+          <p className="muted small">
+            {EXAM_REVIEW_PER_TOPIC} preguntes de cada tema de l’examen, sobretot les que falles o fa temps que no veus. Va bé per
+            preparar-lo o per no oblidar temes passats.
+          </p>
+          <button className="primary-btn wide-btn" onClick={startReview}>
+            Repassar ({exam.topicIds.length} {exam.topicIds.length === 1 ? 'tema' : 'temes'})
+          </button>
+        </section>
+      )}
 
       {exam.topicIds.length > 0 && (
         <section className="card">

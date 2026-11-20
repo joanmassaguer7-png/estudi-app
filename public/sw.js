@@ -4,16 +4,16 @@
 //  3. En tocar un avís, obre l'app directament al Repàs diari.
 // Les dades d'estudi són a IndexedDB; aquí només es llegeixen per decidir l'avís.
 
-const CACHE = 'estudi-app-v12'
+const CACHE = 'estudi-app-v13'
 const LATE_AFTER_MIN = 120
 // Mascota de cada dia, de dilluns a diumenge (còpia de src/data/mascots.ts).
 const MASCOTS = [
   { id: 'cheto', name: 'Cheto' },
-  { id: 'toby', name: 'Toby' },
+  { id: 'kira', name: 'Kira', female: true },
   { id: 'lambo', name: 'Lambo' },
   { id: 'duke', name: 'Duke' },
   { id: 'olaf', name: 'Olaf' },
-  { id: 'valto', name: 'Valto' },
+  { id: 'ais', name: 'Ais', female: true },
   { id: 'teo', name: 'Teo' },
 ]
 
@@ -109,8 +109,8 @@ async function maybeRemind() {
   const mascot = MASCOTS[(now.getDay() + 6) % 7]
   const text =
     mood === 'content'
-      ? { title: name ? `${name}, hora del Repàs diari!` : 'Hora del Repàs diari!', body: `En ${mascot.name} et fa companyia: 10 preguntes i llestos.` }
-      : { title: name ? `${name}, encara no has fet el repàs d’avui` : 'Encara no has fet el repàs d’avui', body: `En ${mascot.name} està trist… Només són 10 preguntes. Som-hi?` }
+      ? { title: name ? `${name}, hora del Repàs diari!` : 'Hora del Repàs diari!', body: `${mascot.female ? 'La' : 'En'} ${mascot.name} et fa companyia: 10 preguntes i llestos.` }
+      : { title: name ? `${name}, encara no has fet el repàs d’avui` : 'Encara no has fet el repàs d’avui', body: `${mascot.female ? 'La' : 'En'} ${mascot.name} està ${mascot.female ? 'trista' : 'trist'}… Només són 10 preguntes. Som-hi?` }
 
   await self.registration.showNotification(text.title, {
     body: text.body,
