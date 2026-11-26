@@ -5,6 +5,7 @@ import { db, newId } from '../data/db'
 import type { Exam, ExamQuestion } from '../data/types'
 import { ScreenHeader, useToast } from '../components/ui'
 import { compressPhoto } from '../data/photos'
+import { isDone } from '../logic/exams'
 
 const LETTERS = 'ABCD'
 const today = () => {
@@ -27,6 +28,7 @@ export function ExamEdit({ examId, data, go }: { examId?: string; data: CourseDa
   const [exam, setExam] = useState<Exam | null>(null)
   const [scoreText, setScoreText] = useState('')
   const [maxText, setMaxText] = useState('10')
+  const [done, setDone] = useState(false)
   const [open, setOpen] = useState<string | null>(null)
   // Nota tal com estava desada abans d'editar: només es felicita quan la nota és nova o ha canviat.
   const [savedPct, setSavedPct] = useState<number | null>(null)
@@ -55,6 +57,7 @@ export function ExamEdit({ examId, data, go }: { examId?: string; data: CourseDa
       setSavedPct(found && found.score !== null ? found.score / found.maxScore : null)
       setScoreText(e.score === null ? '' : String(e.score).replace('.', ','))
       setMaxText(String(e.maxScore).replace('.', ','))
+      setDone(found ? isDone(found) : false)
     })()
     return () => {
       alive = false
@@ -78,7 +81,7 @@ export function ExamEdit({ examId, data, go }: { examId?: string; data: CourseDa
           : score !== null && score < 0
             ? 'La nota no pot ser negativa.'
             : null
-  const canSave = exam.title.trim() !== '' && !scoreError && adding === 0
+  const canSave = exam.title.trim() !== '' && (!done || !scoreError) && adding === 0
 
   const set = (patch: Partial<Exam>) => setExam({ ...exam, ...patch })
   const setQ = (id: string, patch: Partial<ExamQuestion>) =>
@@ -113,7 +116,8 @@ export function ExamEdit({ examId, data, go }: { examId?: string; data: CourseDa
     const clean: Exam = {
       ...exam,
       title: exam.title.trim(),
-      score,
+      done,
+      score: done ? score : null,
       maxScore: max ?? 10,
       notes: exam.notes?.trim() || undefined,
       // Les preguntes sense enunciat no es guarden.
@@ -154,16 +158,34 @@ export function ExamEdit({ examId, data, go }: { examId?: string; data: CourseDa
           <input type="date" value={exam.date} onChange={(e) => e.target.value && set({ date: e.target.value })} />
         </label>
         <div className="field">
-          <span>Nota</span>
+          <span>Estat</span>
+          <div className="seg">
+            <button type="button" className={!done ? 'on' : ''} onClick={() => setDone(false)} aria-pressed={!done}>
+              Pendent
+            </button>
+            <button type="button" className={done ? 'on' : ''} onClick={() => setDone(true)} aria-pressed={done}>
+              Fet
+            </button>
+          </div>
+          <small className="muted">
+            {done
+              ? 'Ja l’has fet: hi pots posar la nota i les preguntes que van sortir.'
+              : 'Encara no l’has fet: a l’inici surt primer i serveix per repassar-ne els temes.'}
+          </small>
+        </div>
+        {done && (
+          <div className="field">
+            <span>Nota</span>
           <div className="score-row">
             <input inputMode="decimal" value={scoreText} onChange={(e) => setScoreText(e.target.value)} placeholder="7,5" aria-label="Nota obtinguda" />
             <span>sobre</span>
             <input inputMode="decimal" value={maxText} onChange={(e) => setMaxText(e.target.value)} aria-label="Nota màxima" />
           </div>
           {scoreError ? <small className="field-error">{scoreError}</small> : <small className="muted">Si encara no la saps, deixa-la en blanc.</small>}
-        </div>
+          </div>
+        )}
         <div className="field">
-          <span>Temes que entraven</span>
+          <span>{done ? 'Temes que entraven' : 'Temes que entren'}</span>
           <div className="topic-chips">
             {data.topics.map((t) => (
               <button key={t.id} type="button" className={`topic-chip ${exam.topicIds.includes(t.id) ? 'on' : ''}`} onClick={() => toggleTopic(t.id)} aria-pressed={exam.topicIds.includes(t.id)}>
@@ -178,6 +200,8 @@ export function ExamEdit({ examId, data, go }: { examId?: string; data: CourseDa
         </label>
       </section>
 
+      {done && (
+        <>
       <section className="card">
         <h2>Fotos de l’examen</h2>
         <p className="muted small">
@@ -283,6 +307,8 @@ export function ExamEdit({ examId, data, go }: { examId?: string; data: CourseDa
           Afegir una pregunta
         </button>
       </section>
+        </>
+      )}
 
       <button className="primary-btn wide-btn save-exam" disabled={!canSave} onClick={save}>
         {examId ? 'Desar els canvis' : 'Desar l’examen'}

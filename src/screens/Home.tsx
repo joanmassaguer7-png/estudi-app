@@ -26,13 +26,14 @@ import { Guada } from '../components/Guada'
 import { TUTORIAL_KEY, type TutorialState } from './Tutorial'
 import { CHAPTERS } from '../tutorial/chapters'
 import type { Navigate } from '../nav'
+import type { Exam } from '../data/types'
 import { AlertIcon, BoltIcon, ChartIcon, CrownIcon, ExamIcon, GamepadIcon, GearIcon, MoonIcon, PawIcon, RepeatIcon, SearchIcon, SunIcon } from '../components/icons'
 import { setTheme, useTheme } from '../theme'
 import { BirthdayParty } from '../components/BirthdayParty'
 import { BIRTHDAY_SEEN_KEY, isBirthday } from '../data/birthday'
 import { ProgressBar, useToast } from '../components/ui'
 import { db } from '../data/db'
-import { compareExam, formatExamDate, formatScore } from '../logic/exams'
+import { compareExam, examScoreLabel, formatExamDate, formatScore, splitExams } from '../logic/exams'
 
 export function Home({ data, go }: { data: CourseData; go: Navigate }) {
   const theme = useTheme()
@@ -50,6 +51,7 @@ export function Home({ data, go }: { data: CourseData; go: Navigate }) {
   const [search, setSearch] = useState('')
   const [popped, setPopped] = useState<string | null>(null)
   const [partyAgain, setPartyAgain] = useState(false)
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({})
   const [byExam, setByExam] = useState(() => {
     try {
       return localStorage.getItem('estudi-app-temes-per-examen') === '1'
@@ -89,23 +91,35 @@ export function Home({ data, go }: { data: CourseData; go: Navigate }) {
   const thisYear = new Date().getFullYear()
   const showParty = !!settings && birthdayToday && (partyAgain || settings.birthdaySeen !== thisYear)
   const backupDue = settings ? backupDaysDue(settings.lastBackup, settings.backupSnooze, sessions.map((x) => x.finishedAt)) : null
+  // Temes per exàmens: primer els pendents (el proper, desplegat), després els temes sense examen i al final els fets.
   const examGroups = (() => {
     const visible = new Set(visibleTopics.map((t) => t.id))
-    const groups = [...exams]
-      .sort((a, b) => a.date.localeCompare(b.date))
-      .map((e) => ({
-        id: e.id,
-        title: e.title,
-        sub: `${formatExamDate(e.date)}${e.score !== null ? ` · ${formatScore(e.score, e.maxScore)}` : ''}`,
-        topicIds: e.topicIds,
-        topics: topics.filter((t) => e.topicIds.includes(t.id) && visible.has(t.id)),
-      }))
-      .filter((g) => g.topics.length > 0 || !search.trim())
+    const { pending, done } = splitExams(exams, topics)
+    const nums = (ids: string[]) => {
+      const n = topics.filter((t) => ids.includes(t.id)).map((t) => t.number)
+      return n.length ? `${n.length === 1 ? 'Tema' : 'Temes'} ${n.length > 1 ? `${n.slice(0, -1).join(', ')} i ${n[n.length - 1]}` : n[0]}` : 'Sense temes'
+    }
+    const group = (e: Exam, kind: 'pending' | 'done') => ({
+      id: e.id,
+      kind,
+      title: e.title,
+      sub: `${nums(e.topicIds)} · ${formatExamDate(e.date)}${kind === 'done' ? ` · ${examScoreLabel(e)}` : ''}`,
+      topicIds: e.topicIds,
+      topics: topics.filter((t) => e.topicIds.includes(t.id) && visible.has(t.id)),
+    })
     const inAny = new Set(exams.flatMap((e) => e.topicIds))
     const rest = visibleTopics.filter((t) => !inAny.has(t.id))
-    if (rest.length) groups.push({ id: 'cap', title: 'Sense examen', sub: `${rest.length} ${rest.length === 1 ? 'tema' : 'temes'}`, topicIds: rest.map((t) => t.id), topics: rest })
-    return groups
+    const groups = [
+      ...pending.map((e) => group(e, 'pending')),
+      ...(rest.length
+        ? [{ id: 'cap', kind: 'none' as const, title: 'Sense examen', sub: nums(rest.map((t) => t.id)), topicIds: rest.map((t) => t.id), topics: rest }]
+        : []),
+      ...done.map((e) => group(e, 'done')),
+    ]
+    return groups.filter((g) => g.topics.length > 0 || !search.trim())
   })()
+  const nextExamId = splitExams(exams, topics).pending[0]?.id
+  const groupOpen = (id: string) => (search.trim() ? true : (openGroups[id] ?? (id === nextExamId || id === 'cap')))
 
   async function toggleCrown(topicId: string) {
     const active = crowns.includes(topicId)
@@ -442,19 +456,32 @@ export function Home({ data, go }: { data: CourseData; go: Navigate }) {
         {byExam && exams.length > 0 ? (
           <div className="exam-groups">
             {examGroups.map((g) => (
-              <div key={g.id} className="exam-group">
+              <div key={g.id} className={`exam-group ${g.kind} ${groupOpen(g.id) ? 'open' : ''}`}>
                 <div className="exam-group-head">
-                  <span>
-                    <strong>{g.title}</strong>
-                    <small>{g.sub}</small>
-                  </span>
+                  <button
+                    className="exam-group-toggle"
+                    onClick={() => setOpenGroups((o) => ({ ...o, [g.id]: !groupOpen(g.id) }))}
+                    aria-expanded={groupOpen(g.id)}
+                  >
+                    <svg className="chev" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="m9 6 6 6-6 6" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                    <span>
+                      <strong>
+                        {g.title}
+                        {g.id === nextExamId && <em className="exam-next">Proper</em>}
+                        {g.kind === 'done' && <em className="exam-done">Fet</em>}
+                      </strong>
+                      <small>{g.sub}</small>
+                    </span>
+                  </button>
                   {g.topicIds.length > 0 && g.id !== 'cap' && (
                     <button className="secondary-btn small-btn" onClick={() => startExamReview(g.title, g.topicIds)}>
                       Repassar
                     </button>
                   )}
                 </div>
-                <div className="topic-grid">{g.topics.map(topicCard)}</div>
+                {groupOpen(g.id) && <div className="topic-grid">{g.topics.map(topicCard)}</div>}
               </div>
             ))}
           </div>

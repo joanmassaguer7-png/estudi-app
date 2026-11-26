@@ -5,7 +5,7 @@ import { db } from '../data/db'
 import type { Exam } from '../data/types'
 import { shareTextFile } from '../data/package'
 import { ScreenHeader, useToast } from '../components/ui'
-import { compareExam, examsReport, formatExamDate, formatScore, photoName, practicableQuestions } from '../logic/exams'
+import { compareExam, examScoreLabel, examsReport, formatExamDate, isDone, photoName, practicableQuestions } from '../logic/exams'
 import { dataUrlToFile } from '../data/photos'
 import { shuffle } from '../logic/select'
 
@@ -16,7 +16,11 @@ export function Exams({ data, go }: { data: CourseData; go: Navigate }) {
   const toast = useToast()
   const exams = useLiveQuery(() => db.exams.where('courseId').equals(data.course.id).toArray(), [data.course.id])
   if (!exams) return null
-  const sorted = [...exams].sort((a, b) => b.date.localeCompare(a.date))
+  // Primer els pendents (el més proper primer) i després els fets (el més recent primer).
+  const sorted = [
+    ...exams.filter((e) => !isDone(e)).sort((a, b) => a.date.localeCompare(b.date)),
+    ...exams.filter(isDone).sort((a, b) => b.date.localeCompare(a.date)),
+  ]
   const practice = practicableQuestions(exams)
   const totalQuestions = exams.reduce((s, e) => s + e.questions.length, 0)
   const totalPhotos = exams.reduce((s, e) => s + (e.photos?.length ?? 0), 0)
@@ -112,7 +116,7 @@ function ExamCard({ exam, data, onOpen }: { exam: Exam; data: CourseData; onOpen
       <button className="exam-card" onClick={onOpen}>
         <span className="exam-card-head">
           <strong>{exam.title}</strong>
-          <span className="exam-score">{formatScore(exam.score, exam.maxScore)}</span>
+          <span className={`exam-score ${isDone(exam) ? '' : 'pending'}`}>{examScoreLabel(exam)}</span>
         </span>
         <small className="muted">
           {formatExamDate(exam.date)}

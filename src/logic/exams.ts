@@ -76,6 +76,40 @@ export function practicableQuestions(exams: Exam[]): Question[] {
   return out
 }
 
+function todayIso(): string {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+/** L'examen ja s'ha fet? Si no s'ha marcat mai, fet si té nota o si la data ja ha passat. */
+export function isDone(e: Exam): boolean {
+  return e.done ?? (e.score !== null || e.date < todayIso())
+}
+
+/** Número de tema més baix de l'examen (per ordenar), o Infinity si no en té cap. */
+export function firstTopicNumber(e: Exam, topics: Topic[]): number {
+  const nums = e.topicIds
+    .map((id) => parseFloat(topics.find((t) => t.id === id)?.number ?? ''))
+    .filter((n) => !Number.isNaN(n))
+  return nums.length ? Math.min(...nums) : Infinity
+}
+
+/**
+ * Exàmens pendents (primer el dels temes més baixos, que és el proper) i exàmens fets (també per temes).
+ */
+export function splitExams(exams: Exam[], topics: Topic[]): { pending: Exam[]; done: Exam[] } {
+  const byTopics = (a: Exam, b: Exam) => firstTopicNumber(a, topics) - firstTopicNumber(b, topics) || a.date.localeCompare(b.date)
+  return {
+    pending: exams.filter((e) => !isDone(e)).sort(byTopics),
+    done: exams.filter(isDone).sort(byTopics),
+  }
+}
+
+/** Nota per mostrar: «Pendent» si encara no s'ha fet. */
+export function examScoreLabel(e: Exam): string {
+  return isDone(e) ? formatScore(e.score, e.maxScore) : 'Pendent'
+}
+
 export function formatExamDate(d: string): string {
   const [y, m, day] = d.split('-').map(Number)
   if (!y || !m || !day) return d
@@ -110,7 +144,7 @@ export function examsReport(exams: Exam[], topics: Topic[], attempts: Attempt[],
     lines.push('════════════════════════════════════════')
     lines.push(`EXAMEN: ${e.title}`)
     lines.push(`Data: ${formatExamDate(e.date)}`)
-    lines.push(`Nota: ${formatScore(e.score, e.maxScore)}${c.examPct !== null ? ` (${Math.round(c.examPct * 100)} %)` : ''}`)
+    lines.push(`Nota: ${examScoreLabel(e)}${c.examPct !== null ? ` (${Math.round(c.examPct * 100)} %)` : ''}`)
     lines.push(`Temes: ${e.topicIds.map(tname).join(' · ') || 'no indicats'}`)
     if (c.testPct !== null) lines.push(`Mitjana dels tests d’aquests temes fins al dia de l’examen: ${Math.round(c.testPct * 100)} % (${c.answered} respostes)`)
     if (e.notes) lines.push(`Notes: ${e.notes}`)

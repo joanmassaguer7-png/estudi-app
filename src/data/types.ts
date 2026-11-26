@@ -127,6 +127,10 @@ export interface Exam {
   /** Data de l'examen (AAAA-MM-DD). */
   date: string
   topicIds: string[]
+  /**
+   * Si l'examen ja s'ha fet. Els exàmens antics no el tenen: es dedueix amb `isDone` (fet si té nota o si la data ja ha passat).
+   */
+  done?: boolean
   /** Nota obtinguda, o null si encara no se sap. */
   score: number | null
   /** Nota màxima (normalment 10). */

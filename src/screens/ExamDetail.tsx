@@ -4,7 +4,7 @@ import type { CourseData } from '../data/hooks'
 import type { Navigate } from '../nav'
 import { db } from '../data/db'
 import { Modal, ScreenHeader, useToast } from '../components/ui'
-import { compareExam, formatExamDate, formatScore } from '../logic/exams'
+import { compareExam, examScoreLabel, formatExamDate, formatScore } from '../logic/exams'
 import { CompareBars, DiffLine } from './Exams'
 import { ExamParty } from '../components/ExamParty'
 import { buildExamReview, EXAM_REVIEW_PER_TOPIC } from '../logic/select'
@@ -63,7 +63,7 @@ export function ExamDetail({ examId, celebrate, data, go }: { examId: string; ce
 
       <section className="card exam-summary">
         <p className="muted small">{formatExamDate(exam.date)}</p>
-        <p className="exam-big">{formatScore(exam.score, exam.maxScore)}</p>
+        <p className="exam-big">{examScoreLabel(exam)}</p>
         <CompareBars examPct={c.examPct} testPct={c.testPct} />
         <DiffLine diff={c.diff} testPct={c.testPct} examPct={c.examPct} />
         {c.answered > 0 && (
